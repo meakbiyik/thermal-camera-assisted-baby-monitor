@@ -1,0 +1,44 @@
+import random
+import sys
+import numpy as np
+        
+FRAME_HEIGHT = 768
+FRAME_WIDTH = 1024
+
+def video_routine(frame_queue, rgb_thermal_queue, shared_alignment_vector):
+
+    '''
+    Routine that:
+        + Acquires RGB and Thermal video frames,
+        + Aligns them using the alignment vector provided by the control process,
+        + overlaying them according to a predetermined colormap.
+    
+    It also feeds the frames into the control thread, but this action does not
+    take much time (tested) and it doesn't need to be modified in the future.
+    '''
+    
+    while True:
+        
+        # Acquire the frame
+        rgb_frame = np.random.normal(size = (FRAME_HEIGHT,FRAME_WIDTH))
+        thermal_frame = np.random.normal(size = (FRAME_HEIGHT,FRAME_WIDTH))
+        
+        # Put them into the queue
+        rgb_thermal_queue.put((rgb_frame, thermal_frame))
+        
+        # Acquire the alignment vector
+        with shared_alignment_vector.get_lock(): 
+            alignment_vector = tuple(shared_alignment_vector)
+        print('alignment_vector: {}'.format(alignment_vector))
+        sys.stdout.flush()
+        
+        # Video processing 
+        count = 0
+        for i in range(random.randint(1,10) * 10**7):
+            count += 1
+        created_frame = np.random.normal(size = (FRAME_HEIGHT,FRAME_WIDTH))
+        print('video processed')
+        sys.stdout.flush()
+        
+        # Send the frame to queue
+        frame_queue.put(created_frame)
