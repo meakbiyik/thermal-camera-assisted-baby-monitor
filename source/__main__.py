@@ -16,7 +16,7 @@ if __name__ == '__main__':
     # Initialize queues. Frame and Audio queues are connected to server process,
     # but rgb and thermal frames are also fed into to control process via 
     # rgb_thermal_queue
-    rgb_thermal_queue = Queue(1)
+    rgb_thermal_queue = Queue(2)
     frame_queue = Queue(5)
     audio_queue = Queue(10)
     
