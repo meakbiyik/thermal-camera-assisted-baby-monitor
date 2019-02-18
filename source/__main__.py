@@ -22,7 +22,8 @@ if __name__ == '__main__':
     
     # Initialize alignment vector, a shared memory for video and control processes.
     # NOTE TO SELF: give a sensible alignment vector for the initial case
-    shared_alignment_vector = Array('i', (0,0))
+    shared_transform_matrix = Array('i', [[ 2.81291628e-11, 1.00000000e+00, -5.06955742e-13,  8.35398829e-16, -1.56637280e-15,  2.92389590e-15],
+                                          [-3.00482974e+01, 1.20000000e-01,  1.00000000e+00, -5.00000000e-04, 6.40729980e-16,  6.20157957e-16]])
     
     # Initialize shared memories for value types.
     room_temp = Value('f', 0.0)
@@ -33,12 +34,12 @@ if __name__ == '__main__':
     # Initialize Process objects and target the necessary routines
     audio_process = Process(target=audio_routine, args=(audio_queue, baby_is_crying))
     video_process = Process(target=video_routine, args=(frame_queue, rgb_thermal_queue,
-                                                        shared_alignment_vector))
+                                                        shared_transform_matrix))
     server_process = Process(target=server_routine, args=(frame_queue, audio_queue,
                                                           room_temp, room_humid, baby_temp,
                                                           baby_is_crying))
     control_process = Process(target=control_routine, args=(rgb_thermal_queue,
-                                                            shared_alignment_vector,
+                                                            shared_transform_matrix,
                                                             room_temp, room_humid, baby_temp))
     
     # Start the processes.

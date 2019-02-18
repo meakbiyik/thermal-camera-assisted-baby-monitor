@@ -1,11 +1,12 @@
 import random
 import sys
 import numpy as np
+from skimage import transform
         
 FRAME_HEIGHT = 768
 FRAME_WIDTH = 1024
 
-def video_routine(frame_queue, rgb_thermal_queue, shared_alignment_vector):
+def video_routine(frame_queue, rgb_thermal_queue, shared_transform_matrix):
 
     '''
     Routine that:
@@ -26,11 +27,15 @@ def video_routine(frame_queue, rgb_thermal_queue, shared_alignment_vector):
         # Put them into the queue
         rgb_thermal_queue.put((rgb_frame, thermal_frame))
         
-        # Acquire the alignment vector
-        with shared_alignment_vector.get_lock(): 
-            alignment_vector = tuple(shared_alignment_vector)
-        print('alignment_vector: {}'.format(alignment_vector))
+        # Acquire the transform matrix and create tansform object
+        with shared_transform_matrix.get_lock(): 
+            transform_matrix = np.array(shared_transform_matrix)
+        transform_obj = transform.PolynomialTransform(transform_matrix)
+        print('transform_matrix: {}'.format(transform_matrix))
         sys.stdout.flush()
+        
+        # Warp the thermal image according to the transform object
+        warped_thermal = transform.warp(thermal_frame, transform_obj)
         
         # Video processing 
         count = 0

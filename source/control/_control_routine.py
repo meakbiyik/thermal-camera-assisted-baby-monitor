@@ -2,7 +2,7 @@ import random
 from multiprocessing.queues import Queue
 
 def control_routine(rgb_thermal_queue,
-                    shared_alignment_vector,
+                    shared_transform_matrix,
                     room_temp, room_humid, baby_temp):
     
     '''
@@ -31,7 +31,7 @@ def control_routine(rgb_thermal_queue,
             count = 0
             for i in range(random.randint(1,10) * 10**6):
                 count += 1
-            alignment_vector = (random.randint(1,10),random.randint(1,10))
+            transform_matrix = (random.randint(1,10),random.randint(1,10))
             
             # Put data into variables
             with room_temp.get_lock():
@@ -41,8 +41,8 @@ def control_routine(rgb_thermal_queue,
             with baby_temp.get_lock():
                 baby_temp.value = random.randint(36,42)
                 
-            with shared_alignment_vector.get_lock(): 
-                shared_alignment_vector[:] = alignment_vector
+            with shared_transform_matrix.get_lock(): 
+                shared_transform_matrix[:] = transform_matrix
 
         except Queue.empty:
             print('Timeout -- frames could not be parsed to the control routine')
