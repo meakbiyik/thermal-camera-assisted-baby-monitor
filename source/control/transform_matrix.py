@@ -55,6 +55,7 @@ def calculate_transform_matrix(frame_RGB, frame_thermal,
         region_divisions_with_zero = np.linspace(0, max_width, num = region_count,
                                        endpoint = False, dtype = int)
         region_divisions = region_divisions_with_zero[1:]
+        all_region_bounds = np.append(region_divisions_with_zero, max_width)
         lum_regions = np.hsplit(rgb_proc,region_divisions)
         therm_regions = np.hsplit(therm_proc,region_divisions)
         
@@ -64,9 +65,15 @@ def calculate_transform_matrix(frame_RGB, frame_thermal,
             shifts, error, _ = feature.register_translation(thermreg.astype(int), lumreg.astype(int), 100)
             min_h, min_w = shifts
     
-            points_y.append(max_height/2-min_h)
-            points_x.append(region_divisions_with_zero[ind] + min_w)
-            weights.append(division_depth - region_count + 1)
+            reg_width = all_region_bounds[ind+1] - region_divisions_with_zero[ind]
+            point_y = max_height/2-min_h
+            point_x = region_divisions_with_zero[ind] + reg_width/2 - min_w
+            
+            points_y.append(point_y)
+            points_x.append(point_x)
+            # weights depend on how sure the point is, and how close it is to the center
+            # which is the expected location of the baby
+            weights.append( (division_depth - region_count + 1) * abs(point_x-(max_width/2))/max_width )
     
     clean_mask_1 = np.array([True if y > max_height*11/20 else False for y in points_y])
     semiclean_points_x = np.array(points_x)[clean_mask_1]

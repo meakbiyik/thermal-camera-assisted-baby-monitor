@@ -13,8 +13,8 @@ from scipy import stats
 from control.transform_matrix import calculate_transform_matrix
 
 #image adresses
-frame_RGB = r'C:\Users\erena\OneDrive\Desktop\EEE 493-494\photos\overlay_3\rgb.jpg'
-frame_thermal = r'C:\Users\erena\OneDrive\Desktop\EEE 493-494\photos\overlay_3\thermal.jpg'
+frame_RGB = r'C:\Users\erena\OneDrive\Desktop\EEE 493-494\photos\ziya_baby2\rgb.jpg'
+frame_thermal = r'C:\Users\erena\OneDrive\Desktop\EEE 493-494\photos\ziya_baby2\thermal.jpg'
 
 # get images
 frame_RGB = io.imread(frame_RGB)
