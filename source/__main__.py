@@ -1,5 +1,6 @@
 from multiprocessing import Process, Value, Array
-from helper_classes.continuous_queue import ContinuousQueue as Queue
+from helper_modules.continuous_queue import ContinuousQueue as Queue
+
 from ctypes import c_bool
 
 from audio._audio_routine import audio_routine
