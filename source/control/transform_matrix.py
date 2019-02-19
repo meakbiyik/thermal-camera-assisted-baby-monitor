@@ -7,7 +7,7 @@ from scipy import stats
 
 def calculate_transform_matrix(frame_RGB, frame_thermal,
                                 thermal_canny_percentage = 4,
-                                RGB_canny_percentage = 4,
+                                rgb_canny_percentage = 4,
                                 division_depth = 8):
     
     max_height, max_width = frame_thermal.shape
@@ -24,7 +24,7 @@ def calculate_transform_matrix(frame_RGB, frame_thermal,
     # To determine the thresholds, try to make the pixel counts on both images
     # approximately equal.
     one_perc_count = max_height*max_width/100
-    val_canny_minimize = lambda th: abs(RGB_canny_percentage*one_perc_count-np.count_nonzero(feature.canny(val_smooth,
+    val_canny_minimize = lambda th: abs(rgb_canny_percentage*one_perc_count-np.count_nonzero(feature.canny(val_smooth,
                                                                   sigma = 0,
                                                                   high_threshold = th[1],
                                                                   low_threshold  = th[0])))
