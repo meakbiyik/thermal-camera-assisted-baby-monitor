@@ -2,6 +2,8 @@ import random
 import sys
 import numpy as np
 from skimage import transform
+
+import release
         
 FRAME_HEIGHT = 768
 FRAME_WIDTH = 1024
