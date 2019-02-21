@@ -2,14 +2,13 @@ import sys
 sys.path.append("..")
 
 from helper_modules.pylepton import Lepton
-from frame_preprocessing import preprocess_thermal_frame
+from frame_preprocessing import preprocess_thermal_frame, float_to_uint8
 
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 import numpy as np
 import cv2
 from skimage import transform
-from skimage import img_as_ubyte
 
 def _video_routine_without_exit(frame_queue, bgr_thermal_queue, shared_transform_matrix):
 
@@ -91,7 +90,7 @@ def _video_routine_without_exit(frame_queue, bgr_thermal_queue, shared_transform
             
             # Apply color map to the scaled frame
             # Beware that the output is also BGR.
-            colored_thermal_frame = cv2.applyColorMap(img_as_ubyte(scaled_thermal_frame),
+            colored_thermal_frame = cv2.applyColorMap(float_to_uint8(scaled_thermal_frame),
                                                       cv2.COLORMAP_JET)
     
             # Sum the thermal and BGR frames

@@ -8,6 +8,17 @@ import numba
 from numba import njit
 import numpy as np
 
+def float_to_uint8(frame):
+    '''
+    Convert float64 frame to uint8.
+    
+    Numba does not optimize this function, as it is pretty optimized by itself.
+    '''
+    
+    conv_frame = (frame*256).astype(np.uint8)
+
+    return conv_frame
+
 @njit(numba.uint8[:,:](numba.uint16[:,:]), fastmath = True)
 def preprocess_thermal_frame(frame):
     
@@ -24,13 +35,6 @@ def preprocess_thermal_frame(frame):
                 frame[i,j] = threshold_low
     
     norm_frame = (frame - threshold_low) / (threshold_high - threshold_low)
-    shift_frame = (norm_frame*255).astype(np.uint8)
+    shift_frame = (norm_frame*256).astype(np.uint8)
 
     return shift_frame
-
-import time
-from skimage import img_as_ubyte
-start = time.time()
-b = img_as_ubyte(a)
-mid = time.time()
-c = (norm_frame*255).astype(np.uint8)
