@@ -9,8 +9,9 @@ from picamera import PiCamera
 import numpy as np
 import cv2
 from skimage import transform
+import time
 
-def _video_routine_without_exit(frame_queue, bgr_thermal_queue, shared_transform_matrix):
+def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
 
     '''
     Routine that:
@@ -30,6 +31,7 @@ def _video_routine_without_exit(frame_queue, bgr_thermal_queue, shared_transform
     RESOLUTION = (640,480) # Beware that this is the inverse of numpy ordering!
     NP_COMPAT_RES = (480,640)
     THERMAL_RES = (60,80)
+    CHIP_DESELECT = 0.185
     
     # Initialize necessary variables
     transform_matrix = np.array([[ 2.81291628e-11, 1.00000000e+00, -5.06955742e-13,  8.35398829e-16, -1.56637280e-15,  2.92389590e-15],
@@ -53,11 +55,18 @@ def _video_routine_without_exit(frame_queue, bgr_thermal_queue, shared_transform
         
         # Take the first thermal frame to couple with the first BGR frame.
         # Wait if the frame is bad, until you get a good one.
+        # Lepton sometimes return the same frame, so if the frame id is 
+        # identical, no processing is necessary.
         # Walrus operator would be so nice to use here...
-        raw_thermal = False
-        while not raw_thermal:
-            raw_thermal_frame = thermal_camera.capture(retry_reset = True,
-                                                       return_false_if_error = True)
+        raw_thermal_frame = False
+        while not raw_thermal_frame:
+            raw_thermal_frame, thermal_id = thermal_camera.capture(retry_reset = True,
+                                                                   return_false_if_error = True)
+        # Flag for the unique thermal frame and corrupted frame.
+        # Corrupted frame flag carries a time value to leave
+        # the chip deselected for CHIP_DESELECT duration
+        thermal_frame_is_unique = True
+        thermal_frame_is_corrupted = (False, time.time())
         
         # Start the loop! 
         # capture_continuous method just spits out the  BGR frames continuously. 
@@ -71,48 +80,82 @@ def _video_routine_without_exit(frame_queue, bgr_thermal_queue, shared_transform
             # Put them into the queue
             bgr_thermal_queue.put((bgr_frame, raw_thermal_frame))
             
-            # Preprocess the thermal frame to be able to overlay it on the BGR frame.
-            corrected_thermal_frame = preprocess_thermal_frame(raw_thermal)
-    
-            # Acquire the transform matrix and if it is new, create transform object
-            with shared_transform_matrix.get_lock(): 
-                new_transform_matrix = np.array(shared_transform_matrix)
-            if( new_transform_matrix != transform_matrix):
-                transform_matrix = new_transform_matrix
-                transform_obj = transform.PolynomialTransform(transform_matrix)
-            
-            # Warp the thermal image according to the transform object
-            warped_thermal_frame = transform.warp(corrected_thermal_frame, transform_obj)
-            
-            # Scale the thermal frame to have the same size with the RGB.
-            scaled_thermal_frame = transform.pyramid_expand(warped_thermal_frame,
-                                                            upscale = NP_COMPAT_RES[0]/THERMAL_RES[0])
-            
-            # Apply color map to the scaled frame
-            # Beware that the output is also BGR.
-            colored_thermal_frame = cv2.applyColorMap(float_to_uint8(scaled_thermal_frame),
-                                                      cv2.COLORMAP_JET)
-    
-            # Sum the thermal and BGR frames
-            # Is BGR frame uint8? if not, CHANGE this part.
-            overlay = cv2.addWeighted(colored_thermal_frame, 0.3, bgr_frame, 0.7, 0)
-            
-            # Flip the frames (necessary?)
-            final_overlay = np.flip(overlay,0)
+            # Do the processing if the thermal frame is unique. If not,
+            # nothing much to do!
+            if( thermal_frame_is_unique):
+                # Preprocess the thermal frame to be able to overlay it on the BGR frame.
+                # Copy is done here to reuse raw_thermal_frame if necessary
+                corrected_thermal_frame = preprocess_thermal_frame(raw_thermal_frame.copy())
+        
+                # Acquire the transform matrix and if it is new, create transform object
+                with shared_transform_matrix.get_lock(): 
+                    new_transform_matrix = np.array(shared_transform_matrix)
+                if( new_transform_matrix != transform_matrix):
+                    transform_matrix = new_transform_matrix
+                    transform_obj = transform.PolynomialTransform(transform_matrix)
+                
+                # Warp the thermal image according to the transform object
+                warped_thermal_frame = transform.warp(corrected_thermal_frame, transform_obj)
+                
+                # Scale the thermal frame to have the same size with the RGB.
+                scaled_thermal_frame = transform.pyramid_expand(warped_thermal_frame,
+                                                                upscale = NP_COMPAT_RES[0]/THERMAL_RES[0])
+                
+                # Apply color map to the scaled frame
+                # Beware that the output is also BGR.
+                colored_thermal_frame = cv2.applyColorMap(float_to_uint8(scaled_thermal_frame),
+                                                          cv2.COLORMAP_JET)
+        
+                # Sum the thermal and BGR frames
+                # Is BGR frame uint8? if not, CHANGE this part.
+                overlay = cv2.addWeighted(colored_thermal_frame, 0.3, bgr_frame, 0.7, 0)
+                
+                # Flip the frames (necessary?)
+                final_overlay = np.flip(overlay,0)
             
             # Video processed!
-            print('video processed')
+            print('Video processed! Thermal frame was{} unique'.format(' not' if not thermal_frame_is_unique else ''))
             sys.stdout.flush()
             
             # Send the frame to queue
             frame_queue.put(final_overlay)
             
-            # Now, get the next thermal frame.
-            # If you can't, use the old one.
-            new_raw_thermal_frame = thermal_camera.capture(retry_reset = False,
-                                                           return_false_if_error = True)
-            if new_raw_thermal_frame:
-                raw_thermal_frame = new_raw_thermal_frame
+            # Now, get the next thermal frame. First, check if the last thermal 
+            # frame was corrupted. If not, just capture as usual.
+            if( thermal_frame_is_corrupted[0]): 
+                
+                # If that is the case, check if CHIP_DESELECT time has passed since
+                # the corruption. If so, take a new frame and turn the flag to False.
+                # If not, just use the old frames as the new ones. The id's will 
+                # be checked to prevent reprocessing in the next if block.
+                if(time.time() - thermal_frame_is_corrupted[1] > CHIP_DESELECT):
+                    new_raw_thermal_frame, new_thermal_id = thermal_camera.capture(retry_reset = False,
+                                                                                   return_false_if_error = True)
+                    thermal_frame_is_corrupted = (False, time.time())
+                
+                else:
+                    new_raw_thermal_frame, new_thermal_id = raw_thermal_frame, thermal_id
+            
+            else:
+                new_raw_thermal_frame, new_thermal_id = thermal_camera.capture(retry_reset = False,
+                                                                               return_false_if_error = True)
+            
+            # If the capture was successful or the necessary time for the
+            # corruption flag to be removed has not passed, check the uniqueness and 
+            # continue. 
+            if type(new_raw_thermal_frame) is np.ndarray:
+                
+                if thermal_id != new_thermal_id:
+                    raw_thermal_frame = new_raw_thermal_frame
+                    thermal_frame_is_unique = True
+                else:
+                    thermal_frame_is_unique = False
+            
+            # If the frame was corrupted, just use the old frames and set the 
+            # corruption flag.
+            else:
+                thermal_frame_is_unique = False
+                thermal_frame_is_corrupted = (True, time.time())
             
             # truncate the output array
             bgr_output_array.truncate(0)
