@@ -2,6 +2,7 @@ import random
 from multiprocessing.queues import Queue
 from skimage import transform
 from transform_matrix import calculate_transform_matrix
+import sys
 
 def control_routine(bgr_thermal_queue,
                     shared_transform_matrix,
@@ -25,9 +26,9 @@ def control_routine(bgr_thermal_queue,
         
         # Get the frames
         try:
-            # If no frame is fed to the queue by the video process for 60 seconds,
+            # If no frame is fed to the queue by the video process for 10 seconds,
             # the method timeouts and gives an exception, which is caught below.
-            bgr_frame, thermal_frame = bgr_thermal_queue.get(timeout = 60)
+            bgr_frame, thermal_frame = bgr_thermal_queue.get(timeout = 10)
                     
             ##########################################################
             ############# Calculate the transform matrix #############
@@ -70,3 +71,4 @@ def control_routine(bgr_thermal_queue,
 
         except Queue.empty:
             print('Timeout -- frames could not be parsed to the control routine')
+            sys.stdout.flush()

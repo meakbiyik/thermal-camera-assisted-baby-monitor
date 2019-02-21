@@ -15,7 +15,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
 
     '''
     Routine that:
-        + Acquires RGB and Thermal video frames,
+        + Acquires BGR and Thermal video frames,
         + Aligns them using the alignment vector provided by the control process,
         + overlaying them according to a predetermined colormap.
     
@@ -77,15 +77,16 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
             # There was a copy() here. WAS IT NECESSARY, REALLY? CHECK.
             bgr_frame = frame.array
             
-            # Put them into the queue
-            bgr_thermal_queue.put((bgr_frame, raw_thermal_frame))
-            
             # Do the processing if the thermal frame is unique. If not,
-            # nothing much to do!
+            # nothing much to do! 
+            # BEWARE THAT raw_thermal_frame IS NOT USABLE! IF YOU WANT TO USE IT,
+            # THEN A COPY IS NECESSARY!
             if( thermal_frame_is_unique):
+                
+                # Put them into the queue
+                bgr_thermal_queue.put((bgr_frame, raw_thermal_frame))
                 # Preprocess the thermal frame to be able to overlay it on the BGR frame.
-                # Copy is done here to reuse raw_thermal_frame if necessary
-                corrected_thermal_frame = preprocess_thermal_frame(raw_thermal_frame.copy())
+                corrected_thermal_frame = preprocess_thermal_frame(raw_thermal_frame)
         
                 # Acquire the transform matrix and if it is new, create transform object
                 with shared_transform_matrix.get_lock(): 
@@ -97,7 +98,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                 # Warp the thermal image according to the transform object
                 warped_thermal_frame = transform.warp(corrected_thermal_frame, transform_obj)
                 
-                # Scale the thermal frame to have the same size with the RGB.
+                # Scale the thermal frame to have the same size with the BGR.
                 scaled_thermal_frame = transform.pyramid_expand(warped_thermal_frame,
                                                                 upscale = NP_COMPAT_RES[0]/THERMAL_RES[0])
                 
