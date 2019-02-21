@@ -17,7 +17,7 @@ if __name__ == '__main__':
     # Initialize queues. Frame and Audio queues are connected to server process,
     # but rgb and thermal frames are also fed into to control process via 
     # rgb_thermal_queue
-    rgb_thermal_queue = Queue(2)
+    bgr_thermal_queue = Queue(2)
     frame_queue = Queue(5)
     audio_queue = Queue(10)
     
@@ -33,13 +33,17 @@ if __name__ == '__main__':
     baby_is_crying = Value(c_bool, False)
     
     # Initialize Process objects and target the necessary routines
-    audio_process = Process(target=audio_routine, args=(audio_queue, baby_is_crying))
-    video_process = Process(target=video_routine, args=(frame_queue, rgb_thermal_queue,
+    audio_process = Process(name = 'audio_process',
+                            target=audio_routine, args=(audio_queue, baby_is_crying))
+    video_process = Process(name = 'video_process',
+                            target=video_routine, args=(frame_queue, bgr_thermal_queue,
                                                         shared_transform_matrix))
-    server_process = Process(target=server_routine, args=(frame_queue, audio_queue,
+    server_process = Process(name = 'server_process',
+                             target=server_routine, args=(frame_queue, audio_queue,
                                                           room_temp, room_humid, baby_temp,
                                                           baby_is_crying))
-    control_process = Process(target=control_routine, args=(rgb_thermal_queue,
+    control_process = Process(name = 'control_process',
+                              target=control_routine, args=(bgr_thermal_queue,
                                                             shared_transform_matrix,
                                                             room_temp, room_humid, baby_temp))
     
