@@ -36,5 +36,9 @@ def preprocess_thermal_frame(frame):
     
     norm_frame = (frame - threshold_low) / (threshold_high - threshold_low)
     shift_frame = (norm_frame*256).astype(np.uint8)
+    
+    ## maybe use this?
+    ## cv2.normalize(a, a, 0, 65535, cv2.NORM_MINMAX) # extend contrast
+    ## np.right_shift(a, 8, a) # fit data into 8 bits
 
     return shift_frame

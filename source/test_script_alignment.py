@@ -10,6 +10,10 @@ from matplotlib import pyplot as plt
 from scipy.stats import norm, multivariate_normal
 from scipy import stats
 
+import sys
+sys.path.append(r"C:\Users\erena\OneDrive\Belgeler\GitHub\thermal-camera-assisted-baby-monitor\source")
+print(sys.path)
+
 from control.transform_matrix import calculate_transform_matrix
 
 #image adresses
@@ -45,7 +49,7 @@ warped = transform.warp(frame_thermal_res,trans)
 plt.figure()
 plt.imshow(warped)
 
-scaled_aligned_thermal = cv2.applyColorMap((warped*255).astype('uint8'), cv2.COLORMAP_JET)[...,::-1]
+scaled_aligned_thermal = cv2.applyColorMap((warped*256).astype('uint8'), cv2.COLORMAP_JET)[...,::-1]
 
 overlay = cv2.addWeighted(scaled_aligned_thermal, 0.3, (frame_RGB_res*255).astype('uint8'), 0.7, 0)
 plt.figure()

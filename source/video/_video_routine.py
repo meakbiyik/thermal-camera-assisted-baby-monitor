@@ -31,7 +31,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
     RESOLUTION = (640,480) # Beware that this is the inverse of numpy ordering!
     NP_COMPAT_RES = (480,640)
     THERMAL_RES = (60,80)
-    CHIP_DESELECT = 0.185
+    CHIP_DESELECT = 0.185 # Deselect duration after corruption, in miliseconds.
     
     # Initialize necessary variables
     transform_matrix = np.array([[ 2.81291628e-11, 1.00000000e+00, -5.06955742e-13,  8.35398829e-16, -1.56637280e-15,  2.92389590e-15],
@@ -164,3 +164,5 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
     finally:
         
         thermal_camera.close_handle()
+        print('video routine stopped.')
+        sys.stdout.flush()

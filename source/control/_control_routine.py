@@ -72,3 +72,7 @@ def control_routine(bgr_thermal_queue,
         except Queue.empty:
             print('Timeout -- frames could not be parsed to the control routine')
             sys.stdout.flush()
+        
+        finally:
+            print('control routine stopped.')
+            sys.stdout.flush()

@@ -107,11 +107,26 @@ def calculate_transform_matrix(frame_RGB, frame_thermal,
     trans = transform.PolynomialTransform()
     trans.estimate(src,dest,2)
     
-    from matplotlib import pyplot as plt
-    plt.figure()
-    plt.imshow(frame_thermal)
-    plt.scatter(points_x, points_y,color = 'r')
-    plt.scatter(clean_points_x, clean_points_y,color = 'g')
-    plt.plot(points, line)
-    
+#    from matplotlib import pyplot as plt
+#    import cv2
+#    fig, ax = plt.subplots(nrows=1, ncols=4, figsize = (20,5))
+#    
+#    ax[0].imshow(frame_thermal)
+#    ax[0].set_title('thermal frame. Initial res: 80x60')
+#    ax[1].imshow(frame_RGB)
+#    ax[1].set_title('RGB frame. Initial res: 640x480')
+#    ax[2].imshow(frame_thermal)
+#    ax[2].scatter(points_x, points_y,color = 'r')
+#    ax[2].scatter(clean_points_x, clean_points_y,color = 'g')
+#    ax[2].plot(points, line)
+#    ax[2].set_title('Corr. points and the quadratic fit. Red: outliers.')
+#    
+#    warped = transform.warp(frame_thermal,trans)
+#    
+#    scaled_aligned_thermal = cv2.applyColorMap((warped*256).astype('uint8'), cv2.COLORMAP_JET)[...,::-1]
+#    
+#    overlay = cv2.addWeighted(scaled_aligned_thermal, 0.3, (frame_RGB*256).astype('uint8'), 0.7, 0)
+#    ax[3].imshow(overlay)
+#    ax[3].set_title('final overlay')
+#    
     return trans.params
