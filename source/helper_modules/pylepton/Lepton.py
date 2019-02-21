@@ -174,7 +174,7 @@ class Lepton(object):
               print("Garbage frame number reset waiting...")
             time.sleep(0.185)
         if(return_false_if_error):
-            return False, False
+            return False
       else:
         break
 
@@ -196,4 +196,4 @@ class Lepton(object):
       print("frame processed int {0}s, {1}hz".format(end-start, 1.0/(end-start)))
 
     # TODO: turn on telemetry to get real frame id, sum on this array is fast enough though (< 500us)
-    return data_buffer, data_buffer.sum()
+    return data_buffer
