@@ -2,7 +2,7 @@ import sys
 sys.path.append("..")
 
 from helper_modules.pylepton import Lepton
-from video.frame_preprocessing import clip_thermal_frame, float_to_uint8
+from video.frame_preprocessing import float_to_uint8
 
 from picamera.array import PiRGBArray
 from picamera import PiCamera
@@ -10,7 +10,6 @@ import numpy as np
 import cv2
 from skimage import transform
 import time
-from PIL import Image
 
 def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
 
@@ -77,7 +76,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
             
             # Acquire the BGR frame
             # There was a copy() here. WAS IT NECESSARY, REALLY? CHECK.
-            bgr_frame = frame.array
+            bgr_frame = frame.array.astype(np.uint8)
             
             # Do the processing if the thermal frame is unique. If not,
             # nothing much to do! 
@@ -120,7 +119,6 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                                                           cv2.COLORMAP_JET)
         
                 # Sum the thermal and BGR frames
-                # Is BGR frame uint8? if not, CHANGE this part.
                 overlay = cv2.addWeighted(colored_thermal_frame, 0.3, bgr_frame, 0.7, 0)
                 
                 # Flip the frames (necessary?)
