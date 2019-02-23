@@ -67,7 +67,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
         # Corrupted frame flag carries a time value to leave
         # the chip deselected for CHIP_DESELECT duration
         thermal_frame_is_unique = True
-        thermal_frame_is_corrupted = (False, time.time())
+        thermal_frame_is_corrupted = (False, time.perf_counter())
         
         # Start the loop! 
         # capture_continuous method just spits out the  BGR frames continuously. 
@@ -121,8 +121,8 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                 # Sum the thermal and BGR frames
                 overlay = cv2.addWeighted(colored_thermal_frame, 0.3, bgr_frame, 0.7, 0)
                 
-                # Flip the frames (necessary?)
-                final_overlay = np.flip(overlay,0)
+                # Flip the frames (necessary?) and convert to RGB (necessary?)
+                final_overlay = np.flip(overlay,0)[:,:,::-1]
             
             # Video processed!
             print('Video processed! Thermal frame was{} unique'.format(' not' if not thermal_frame_is_unique else ''))
@@ -139,10 +139,10 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                 # the corruption. If so, take a new frame and turn the flag to False.
                 # If not, just use the old frames as the new ones. The id's will 
                 # be checked to prevent reprocessing in the next if block.
-                if(time.time() - thermal_frame_is_corrupted[1] > CHIP_DESELECT):
+                if(time.perf_counter() - thermal_frame_is_corrupted[1] > CHIP_DESELECT):
                     new_raw_thermal_frame, new_thermal_id = thermal_camera.capture(retry_reset = False,
                                                                                    return_false_if_error = True)
-                    thermal_frame_is_corrupted = (False, time.time())
+                    thermal_frame_is_corrupted = (False, time.perf_counter())
                 
                 else:
                     new_raw_thermal_frame, new_thermal_id = raw_thermal_frame, thermal_id
@@ -166,7 +166,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
             # corruption flag.
             else:
                 thermal_frame_is_unique = False
-                thermal_frame_is_corrupted = (True, time.time())
+                thermal_frame_is_corrupted = (True, time.perf_counter())
             
             # truncate the output array
             bgr_output_array.truncate(0)
