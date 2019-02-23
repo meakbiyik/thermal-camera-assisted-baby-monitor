@@ -2,7 +2,7 @@ import sys
 sys.path.append("..")
 
 from helper_modules.pylepton import Lepton
-from frame_preprocessing import preprocess_thermal_frame, float_to_uint8
+from video.frame_preprocessing import clip_thermal_frame, float_to_uint8
 
 from picamera.array import PiRGBArray
 from picamera import PiCamera
@@ -10,6 +10,7 @@ import numpy as np
 import cv2
 from skimage import transform
 import time
+from PIL import Image
 
 def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
 
@@ -32,6 +33,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
     NP_COMPAT_RES = (480,640)
     THERMAL_RES = (60,80)
     CHIP_DESELECT = 0.185 # Deselect duration after corruption, in miliseconds.
+    MIN_THRESH, MAX_THRESH = 7000, 8000
     
     # Initialize necessary variables
     transform_matrix = np.array([[ 2.81291628e-11, 1.00000000e+00, -5.06955742e-13,  8.35398829e-16, -1.56637280e-15,  2.92389590e-15],
@@ -85,9 +87,14 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                 
                 # Put them into the queue
                 bgr_thermal_queue.put((bgr_frame, raw_thermal_frame))
-                # Preprocess the thermal frame to be able to overlay it on the BGR frame.
-                corrected_thermal_frame = preprocess_thermal_frame(raw_thermal_frame)
+                # Preprocess the thermal frame to clip the values into some
+                # predetermined thresholds
+                corrected_thermal_frame = np.clip(raw_thermal_frame, MIN_THRESH, MAX_THRESH)
         
+                # Normalize thermal frame to 0-255
+                cv2.normalize(corrected_thermal_frame, 
+                              corrected_thermal_frame, 0, 255, cv2.NORM_MINMAX)
+                
                 # Acquire the transform matrix and if it is new, create transform object
                 with shared_transform_matrix.get_lock(): 
                     new_transform_matrix = np.array(shared_transform_matrix)
@@ -99,8 +106,13 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                 warped_thermal_frame = transform.warp(corrected_thermal_frame, transform_obj)
                 
                 # Scale the thermal frame to have the same size with the BGR.
-                scaled_thermal_frame = transform.pyramid_expand(warped_thermal_frame,
-                                                                upscale = NP_COMPAT_RES[0]/THERMAL_RES[0])
+                # Pyramid expand method from skimage creates a smoother output,
+                # but the the difference in speed is more than 20x. So, we will
+                # use this method from cv2.
+                scale = NP_COMPAT_RES[0] / THERMAL_RES[0]
+                scaled_thermal_frame = cv2.resize(warped_thermal_frame, None,
+                                                  fx = scale, fy = scale,
+                                                  interpolation = cv2.INTER_LINEAR)
                 
                 # Apply color map to the scaled frame
                 # Beware that the output is also BGR.
