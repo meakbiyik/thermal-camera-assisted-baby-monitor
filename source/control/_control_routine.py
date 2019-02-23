@@ -1,7 +1,7 @@
 import random
 from multiprocessing.queues import Queue
 from skimage import transform
-from transform_matrix import calculate_transform_matrix
+from control.transform_matrix import calculate_transform_matrix
 import sys
 
 def control_routine(bgr_thermal_queue,
