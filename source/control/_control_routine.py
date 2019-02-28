@@ -69,7 +69,7 @@ def control_routine(bgr_thermal_queue,
             with shared_transform_matrix.get_lock(): 
                 shared_transform_matrix[:] = transform_matrix.flatten()
 
-        except Queue.empty:
+        except:
             print('Timeout -- frames could not be parsed to the control routine')
             sys.stdout.flush()
         
