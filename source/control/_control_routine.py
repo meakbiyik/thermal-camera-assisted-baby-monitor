@@ -3,6 +3,7 @@ from queue import Empty
 from skimage import transform
 from control.transform_matrix import calculate_transform_matrix
 import sys
+import cv2
 
 def control_routine(bgr_thermal_queue,
                     shared_transform_matrix,
@@ -38,6 +39,10 @@ def control_routine(bgr_thermal_queue,
             ##########################################################
             ############# Calculate the transform matrix #############
             ##########################################################
+            
+            # Process the thermal frame
+            cv2.normalize(thermal_frame, 
+                          thermal_frame, 0, 255, cv2.NORM_MINMAX)
             
             # Increasing the scale factor makes the canny hysteresis thresholds'
             # calculation unstable. 3 is determined to be an empirically sufficient
