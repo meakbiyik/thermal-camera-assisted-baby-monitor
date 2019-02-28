@@ -97,7 +97,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                 # Acquire the transform matrix and if it is new, create transform object
                 with shared_transform_matrix.get_lock(): 
                     new_transform_matrix = np.array(shared_transform_matrix).reshape((2,6))
-                if( new_transform_matrix != transform_matrix):
+                if not np.array_equal(new_transform_matrix, transform_matrix):
                     transform_matrix = new_transform_matrix
                     transform_obj = transform.PolynomialTransform(transform_matrix)
                 
