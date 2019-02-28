@@ -23,8 +23,8 @@ if __name__ == '__main__':
     
     # Initialize transform matrix, a shared memory for video and control processes.
     # NOTE TO SELF: give a sensible transform matrix for the initial case
-    shared_transform_matrix = Array('d', [[ 2.81291628e-11, 1.00000000e+00, -5.06955742e-13,  8.35398829e-16, -1.56637280e-15,  2.92389590e-15],
-                                          [-3.00482974e+01, 1.20000000e-01,  1.00000000e+00, -5.00000000e-04, 6.40729980e-16,  6.20157957e-16]])
+    shared_transform_matrix = Array('d', [ 2.81291628e-11, 1.00000000e+00, -5.06955742e-13,  8.35398829e-16, -1.56637280e-15,  2.92389590e-15,
+                                          -3.00482974e+01, 1.20000000e-01,  1.00000000e+00, -5.00000000e-04, 6.40729980e-16,  6.20157957e-16])
     
     # Initialize shared memories for value types.
     room_temp = Value('f', 0.0)

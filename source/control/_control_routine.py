@@ -67,7 +67,7 @@ def control_routine(bgr_thermal_queue,
                 baby_temp.value = random.randint(36,42)
                 
             with shared_transform_matrix.get_lock(): 
-                shared_transform_matrix[:] = transform_matrix
+                shared_transform_matrix[:] = transform_matrix.flatten()
 
         except Queue.empty:
             print('Timeout -- frames could not be parsed to the control routine')
