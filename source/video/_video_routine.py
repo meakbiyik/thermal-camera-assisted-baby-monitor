@@ -60,7 +60,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
         # identical, no processing is necessary.
         # Walrus operator would be so nice to use here...
         raw_thermal_frame = False
-        while not raw_thermal_frame:
+        while not type(raw_thermal_frame) is np.ndarray:
             raw_thermal_frame, thermal_id = thermal_camera.capture(retry_reset = True,
                                                                    return_false_if_error = True)
         # Flag for the unique thermal frame and corrupted frame.
