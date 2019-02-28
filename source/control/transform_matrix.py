@@ -6,9 +6,37 @@ from scipy import optimize
 from scipy import stats
 
 def calculate_transform_matrix(frame_RGB, frame_thermal,
-                                thermal_canny_percentage = 4,
-                                rgb_canny_percentage = 4,
-                                division_depth = 8):
+                               thermal_canny_percentage = 4,
+                               rgb_canny_percentage = 4,
+                               division_depth = 8):
+    '''
+    Calculate the second degree polynomial transformation matrix to map the
+    thermal frame on the RGB frame.
+
+    Parameters
+    ----------
+    frame_RGB : ndarray
+        RGB frame without alpha.
+    frame_thermal : ndarray
+        2D Thermal frame resized to have the same size with RGB frame.
+    thermal_canny_percentage : int, optional
+        Coverage of the edges for the canny output. Recommended: 2 to 6, default: 4.
+    rgb_canny_percentage : int, optional
+        Coverage of the edges for the canny output. Recommended: 3 to 8, default: 4.
+    division_depth : int, optional
+        Maximum region count for the vertical division. Needs to be chosen proportionally
+        with the frames' quality and information density. Smallest division should
+        not have a smaller width than the expected shift, but the outliers are mostly
+        handled. Default: 8.
+
+    Returns
+    -------
+    ndarray
+        2x6 second degree polynomial transformation matrix.
+    '''
+    
+    # Frames must be equal in size.
+    assert frame_RGB.shape[:2] == frame_thermal.shape, "Frames have different size!"
     
     max_height, max_width = frame_thermal.shape
     
@@ -45,21 +73,26 @@ def calculate_transform_matrix(frame_RGB, frame_thermal,
                                low_threshold = low_th_thm)
     
     
-    # Divide image into vertical areas. Width of the regions are wider to the sides,
-    # since the divergence is higher. 
+    # Divide image into vertical areas and save the centers before a possible shift.
     points_x = []
     points_y = []
     weights = []
     for region_count in (np.linspace(1,division_depth,division_depth)).astype(int):
 
+        # Determine division limits
         region_divisions_with_zero = np.linspace(0, max_width, num = region_count,
                                        endpoint = False, dtype = int)
         region_divisions = region_divisions_with_zero[1:]
         all_region_bounds = np.append(region_divisions_with_zero, max_width)
+        # Divide the frames into the regions
         lum_regions = np.hsplit(rgb_proc,region_divisions)
         therm_regions = np.hsplit(therm_proc,region_divisions)
         
         region_divisions_with_zero = np.insert(region_divisions, 0, 0)
+        # Calculate the shifts for each region and save the points. Weight of a point
+        # is proportional with its size ( thus, amount of information) and its
+        # closeness to the center of the image ( which is the expected location
+        # of the baby)
         for ind, (lumreg, thermreg) in enumerate(zip(lum_regions, therm_regions)):
             
             shifts, error, _ = feature.register_translation(thermreg.astype(int), lumreg.astype(int), 100)
@@ -71,10 +104,12 @@ def calculate_transform_matrix(frame_RGB, frame_thermal,
             
             points_y.append(point_y)
             points_x.append(point_x)
-            # weights depend on how sure the point is, and how close it is to the center
-            # which is the expected location of the baby
+
             weights.append( (division_depth - region_count + 1) * abs(point_x-(max_width/2))/max_width )
     
+    # Remove the points that are certainly miscalculations: First filter by
+    # the location of the cameras, then remove outliers (i.e. points more than 1 iqr away 
+    # from the closest percentile.)
     clean_mask_1 = np.array([True if y > max_height*11/20 else False for y in points_y])
     semiclean_points_x = np.array(points_x)[clean_mask_1]
     semiclean_points_y = np.array(points_y)[clean_mask_1]
@@ -87,6 +122,7 @@ def calculate_transform_matrix(frame_RGB, frame_thermal,
     clean_points_y = np.array(semiclean_points_y)[clean_mask_2]
     clean_weights = np.array(semiclean_weights)[clean_mask_2]
     
+    # Create the polynomial features and fit the regression.
     poly = PolynomialFeatures(degree=2)
     X_t = poly.fit_transform(np.array(clean_points_x).reshape((-1,1)))
     
@@ -97,6 +133,7 @@ def calculate_transform_matrix(frame_RGB, frame_thermal,
     data = poly.fit_transform(points.reshape((-1,1)))
     line = clf.predict(data)
     
+    # Create a grid of values from the regression to estimate the transformation matrix.
     x_points_grid = np.array([points , points, points, points, points])
     y_points_grid = np.array([line-20, line-10, line, line+10, line+20])
     src = np.array([(x,y) for x,y in zip(x_points_grid.flatten(), y_points_grid.flatten())])
