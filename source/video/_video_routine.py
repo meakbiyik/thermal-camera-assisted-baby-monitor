@@ -174,5 +174,6 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
     finally:
         
         thermal_camera.close_handle()
+        bgr_camera.close()
         print('video routine stopped.')
         sys.stdout.flush()
