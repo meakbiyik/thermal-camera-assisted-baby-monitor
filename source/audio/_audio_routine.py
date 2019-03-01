@@ -1,5 +1,4 @@
 import random
-import sys
 import numpy as np
 
 AUDIO_LENGTH = 512
@@ -18,12 +17,7 @@ def audio_routine(audio_queue, baby_is_crying):
     while True:
         
         # Audio processing
-        count = 0
-        for i in range(random.randint(1,10) * 10**7):
-            count += 1
         created_audio = np.random.normal(size = (AUDIO_LENGTH,))
-        print('audio processed')
-        sys.stdout.flush()
         
         # Send the frame to queue
         audio_queue.put(created_audio)
