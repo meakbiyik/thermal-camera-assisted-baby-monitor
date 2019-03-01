@@ -1,4 +1,3 @@
-import random
 import sys
 import numpy as np
 
@@ -42,12 +41,4 @@ def server_routine(frame_queue, audio_queue,
         print('frame mean: {}'.format(np.mean(frame)))
         print('audio mean: {}'.format(np.mean(audio)))
         sys.stdout.flush()
-
-        # Send data to server
-        count = 0
-        for i in range(random.randint(1,10) * 10**6):
-            count += 1
-        print('data sent to server')
-        sys.stdout.flush()
-        
         
