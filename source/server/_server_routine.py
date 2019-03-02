@@ -34,11 +34,5 @@ def server_routine(frame_queue, audio_queue,
             crying_detected = baby_is_crying.value
         
         # Print the current inputs to the server to observe the changes
-        print('room temperature: {}'.format(current_room_temperature))
-        print('room humidity: {}'.format(current_room_humidity))
-        print('baby temperature: {}'.format(current_baby_temperature))
-        print('crying detected: {}'.format(crying_detected))
-        print('frame mean: {}'.format(np.mean(frame)))
-        print('audio mean: {}'.format(np.mean(audio)))
         sys.stdout.flush()
         

@@ -63,6 +63,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
         while not type(raw_thermal_frame) is np.ndarray:
             raw_thermal_frame, thermal_id = thermal_camera.capture(retry_reset = True,
                                                                    return_false_if_error = True)
+        start_time = time.perf_counter()
         # Flag for the unique thermal frame and corrupted frame.
         # Corrupted frame flag carries a time value to leave
         # the chip deselected for CHIP_DESELECT duration
@@ -126,6 +127,8 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
             
             # Video processed!
             print('Video processed! Thermal frame was{} unique'.format(' not' if not thermal_frame_is_unique else ''))
+            print('FPS: {}'.format(1/(time.perf_counter()-start_time)))
+            start_time = time.perf_counter()
             sys.stdout.flush()
             
             # Send the frame to queue
