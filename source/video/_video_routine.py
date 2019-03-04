@@ -102,9 +102,9 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                     transform_matrix = new_transform_matrix
                     transform_obj = transform.PolynomialTransform(transform_matrix)
                 
-                # Warp the thermal image according to the transform object
-                warped_thermal_frame = transform.warp(corrected_thermal_frame, transform_obj)
-                
+                # Warp the thermal image according to the transform object.
+                # TODO: Correct the division by 255 thing, it is weird.
+                warped_thermal_frame = float_to_uint8(transform.warp(corrected_thermal_frame/255, transform_obj))
                 # Scale the thermal frame to have the same size with the BGR.
                 # Pyramid expand method from skimage creates a smoother output,
                 # but the the difference in speed is more than 20x. So, we will
@@ -116,15 +116,15 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                 
                 # Apply color map to the scaled frame
                 # Beware that the output is also BGR.
-                colored_thermal_frame = cv2.applyColorMap(float_to_uint8(scaled_thermal_frame),
+                colored_thermal_frame = cv2.applyColorMap(scaled_thermal_frame,
                                                           cv2.COLORMAP_JET)
         
-                # Sum the thermal and BGR frames
-                overlay = cv2.addWeighted(colored_thermal_frame, 0.3, bgr_frame, 0.7, 0)
-                
-                # Flip the frames (necessary?) and convert to RGB (necessary?)
-                final_overlay = np.flip(overlay,0)[:,:,::-1]
+            # Sum the thermal and BGR frames (even if it is not unique)
+            overlay = cv2.addWeighted(colored_thermal_frame, 0.3, float_to_uint8(bgr_frame), 0.7, 0)
             
+            # Flip the frames (necessary?) and convert to RGB (necessary?)
+            final_overlay = np.flip(overlay,0)[:,:,::-1]
+                
             # Video processed!
             print('Unique frame' if thermal_frame_is_unique else 'Repeating frame')
             print('FPS: {}'.format(1/(time.perf_counter()-start_time)))

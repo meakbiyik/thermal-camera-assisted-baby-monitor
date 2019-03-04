@@ -52,8 +52,8 @@ def control_routine(bgr_thermal_queue,
                 # since a total-variation denoising will be done later
                 frame_BGR_res = transform.pyramid_reduce(bgr_frame, sigma = 0,
                                                          downscale = bgr_frame.shape[0]/max_height)
-                frame_thermal_res = transform.pyramid_expand(thermal_frame, sigma = 0,
-                                                             upscale = max_height/thermal_frame.shape[0])
+                frame_thermal_res = transform.pyramid_expand(thermal_frame/255, sigma = 0,
+                                                             upscale = scale_factor_of_thermal)[:,:,0]
                 
                 # Calculate the transform matrix. Depth 8 is accurate enough for the task.
                 # Increasing does not improve the results, and sometimes makes things
