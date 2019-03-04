@@ -8,7 +8,6 @@ import socket
 import struct
 from time import time
 from time import sleep
-from PIL import Image
 
 def server_routine(frame_queue, audio_queue,
                    room_temp, room_humid, baby_temp,
@@ -30,8 +29,6 @@ def server_routine(frame_queue, audio_queue,
 
     # Make a file-like object out of the connection
     connection = client_socket.makefile('wb')
-
-
     start_stream = False
     want_image = b'w'
     send_image = b's'
@@ -56,12 +53,10 @@ def server_routine(frame_queue, audio_queue,
 
             if not start_stream:
 
-
                 start = time()
 
                 # Possible addition of non-blocking arguments and select will be considered
                 answer = client_socket.recv(128)
-
 
                 if answer == want_image:
                     start_stream = True
@@ -69,8 +64,6 @@ def server_routine(frame_queue, audio_queue,
 
             else:
                 frame = frame_queue.get()
-
-
                 stream.write(frame.tobytes())
                 # Write the length of the capture to the stream and flush to
                 # ensure it actually gets sent
@@ -82,10 +75,6 @@ def server_routine(frame_queue, audio_queue,
                 # Reset the stream for the next capture
                 stream.seek(0)
                 stream.truncate()
-
-
-
-
 
     finally:
         connection.close()
