@@ -31,7 +31,5 @@ class ContinuousQueue(Queue):
         
         if(self.full()):
             self.dump()
-            print('queue was full -- final item is dumped to free a slot')
-            sys.stdout.flush()
         
         super().put(obj, block, timeout)

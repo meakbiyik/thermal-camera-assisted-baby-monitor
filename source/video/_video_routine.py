@@ -126,7 +126,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                 final_overlay = np.flip(overlay,0)[:,:,::-1]
             
             # Video processed!
-            print('Video processed! Thermal frame was{} unique'.format(' not' if not thermal_frame_is_unique else ''))
+            print('Unique frame' if thermal_frame_is_unique else 'Repeating frame')
             print('FPS: {}'.format(1/(time.perf_counter()-start_time)))
             start_time = time.perf_counter()
             sys.stdout.flush()
