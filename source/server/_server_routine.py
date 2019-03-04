@@ -68,12 +68,10 @@ def server_routine(frame_queue, audio_queue,
                     client_socket.send(send_image)
 
             else:
-                frame_temp = frame_queue.get()
+                frame = frame_queue.get()
 
-                if frame_temp is not None:
-                    frame = frame_temp
 
-                stream.write(frame)
+                stream.write(frame.tobytes())
                 # Write the length of the capture to the stream and flush to
                 # ensure it actually gets sent
                 connection.write(struct.pack('<L', stream.tell()))
