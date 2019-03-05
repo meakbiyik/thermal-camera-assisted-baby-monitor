@@ -1,6 +1,7 @@
 import random
 import sys
 import numpy as np
+import cv2
 
 import io
 import socket
@@ -64,7 +65,8 @@ def server_routine(frame_queue, audio_queue,
 
             else:
                 frame = frame_queue.get()
-                stream.write(frame.tobytes())
+                _, encoded_frame = cv2.imencode('.jpg', frame)
+                stream.write(encoded_frame.tobytes())
                 # Write the length of the capture to the stream and flush to
                 # ensure it actually gets sent
                 connection.write(struct.pack('<L', stream.tell()))

@@ -50,8 +50,11 @@ def control_routine(bgr_thermal_queue,
                 
                 # Expand-reduce frames to have the same size. Do not apply Gaussian smoothing,
                 # since a total-variation denoising will be done later
-                frame_BGR_res = transform.pyramid_reduce(bgr_frame, sigma = 0,
-                                                         downscale = bgr_frame.shape[0]/max_height)
+                if(bgr_frame.shape[0]/max_height > 1):
+                    frame_BGR_res = transform.pyramid_reduce(bgr_frame, sigma = 0,
+                                                             downscale = bgr_frame.shape[0]/max_height)
+                else:
+                    frame_BGR_res = bgr_frame 
                 frame_thermal_res = transform.pyramid_expand(thermal_frame/255, sigma = 0,
                                                              upscale = scale_factor_of_thermal)[:,:,0]
                 

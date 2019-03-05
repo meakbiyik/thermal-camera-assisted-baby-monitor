@@ -28,11 +28,11 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
     '''
         
     # IMPORTANT CONSTANTS
-    RESOLUTION = (640,480) # Beware that this is the inverse of numpy ordering!
-    NP_COMPAT_RES = (480,640)
+    RESOLUTION = (240,180) # Beware that this is the inverse of numpy ordering!
+    NP_COMPAT_RES = (180,240)
     THERMAL_RES = (60,80)
     CHIP_DESELECT = 0.185 # Deselect duration after corruption, in miliseconds.
-    MIN_THRESH, MAX_THRESH = 7000, 8000
+    MIN_THRESH, MAX_THRESH = 7000, 8000 # 32 and 42 degrees, respectively
     
     # Initialize necessary variables
     transform_matrix = np.array([[ 2.81291628e-11, 1.00000000e+00, -5.06955742e-13,  8.35398829e-16, -1.56637280e-15,  2.92389590e-15],
@@ -43,7 +43,6 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
     # array to get continuous frames
     bgr_camera = PiCamera()
     bgr_camera.resolution = RESOLUTION
-    bgr_camera.framerate = 30
     bgr_output_array = PiRGBArray(bgr_camera, size=RESOLUTION)
     
     # Initialize the thermal camera, create the handle. 
@@ -77,7 +76,8 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
             
             # Acquire the BGR frame
             # There was a copy() here. WAS IT NECESSARY, REALLY? CHECK.
-            bgr_frame = frame.array.astype(np.uint8)
+            bgr_frame = np.flip(frame.array,0).astype(np.uint8)
+            raw_thermal_frame = np.flip(raw_thermal_frame,0)
             
             # Do the processing if the thermal frame is unique. If not,
             # nothing much to do! 
@@ -120,10 +120,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                                                           cv2.COLORMAP_JET)
         
             # Sum the thermal and BGR frames (even if it is not unique)
-            overlay = cv2.addWeighted(colored_thermal_frame, 0.3, float_to_uint8(bgr_frame), 0.7, 0)
-            
-            # Flip the frames (necessary?) and convert to RGB (necessary?)
-            final_overlay = np.flip(overlay,0)[:,:,::-1]
+            overlay = cv2.addWeighted(colored_thermal_frame, 0.25, bgr_frame, 0.75, 0)
                 
             # Video processed!
             print('Unique frame' if thermal_frame_is_unique else 'Repeating frame')
@@ -132,7 +129,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
             sys.stdout.flush()
             
             # Send the frame to queue
-            frame_queue.put(final_overlay)
+            frame_queue.put(overlay)
             
             # Now, get the next thermal frame. First, check if the last thermal 
             # frame was corrupted. If not, just capture as usual.
