@@ -17,12 +17,20 @@ print(sys.path)
 from control.transform_matrix import calculate_transform_matrix
 
 #image adresses
-frame_RGB = r'C:\Users\erena\OneDrive\Desktop\EEE 493-494\photos\ziya_baby2\rgb.jpg'
-frame_thermal = r'C:\Users\erena\OneDrive\Desktop\EEE 493-494\photos\ziya_baby2\thermal.jpg'
+frame_RGB_name = r'C:\Users\erena\OneDrive\Desktop\EEE 493-494\photos\newtest\bgr1.png'
+frame_thermal_name = r'C:\Users\erena\OneDrive\Desktop\EEE 493-494\photos\newtest\thermal1.png'
 
 # get images
-frame_RGB = io.imread(frame_RGB)
-frame_thermal = io.imread(frame_thermal)
+frame_RGB = io.imread(frame_RGB_name)
+frame_thermal = io.imread(frame_thermal_name)
+
+# Process the thermal frame
+cv2.normalize(frame_thermal, frame_thermal, 0, 255, cv2.NORM_MINMAX)
+                
+plt.figure()
+plt.imshow(frame_RGB)
+plt.figure()
+plt.imshow(frame_thermal)          
 
 scale_factor_of_thermal = 3
 
@@ -32,26 +40,31 @@ max_width = 80*scale_factor_of_thermal
 
 # Expand-reduce frames to have the same size. Do not apply Gaussian smoothing,
 # since a total-variation denoising will be done later
-frame_RGB_res = transform.pyramid_reduce(frame_RGB, sigma = 0,
-                                         downscale = frame_RGB.shape[0]/max_height)
-frame_thermal_res = transform.pyramid_expand(frame_thermal, sigma = 0,
-                                             upscale = max_height/frame_thermal.shape[0])
+if(frame_RGB.shape[0]/max_height > 1):
+    frame_RGB_res = transform.pyramid_reduce(frame_RGB, sigma = 0,
+                                             downscale = frame_RGB.shape[0]/max_height)
+else:
+    frame_RGB_res = frame_RGB 
+frame_thermal_res = transform.pyramid_expand(frame_thermal/255, sigma = 0,
+                                             upscale = scale_factor_of_thermal)
 
 transform_matrix = calculate_transform_matrix(frame_RGB_res, frame_thermal_res,
                                               division_depth = 8)
 
 trans = transform.PolynomialTransform(transform_matrix)
 
-print(trans.params)
+print(','.join([str(a) for a in trans.params.flatten()]))
 
-warped = transform.warp(frame_thermal_res,trans)
+warped = transform.pyramid_expand(frame_thermal.astype(float), sigma = 0,
+                                  upscale = scale_factor_of_thermal)
+warped = transform.warp(warped,trans)
 
 plt.figure()
 plt.imshow(warped)
 
-scaled_aligned_thermal = cv2.applyColorMap((warped*256).astype('uint8'), cv2.COLORMAP_JET)[...,::-1]
+scaled_aligned_thermal = cv2.applyColorMap((warped).astype('uint8'), cv2.COLORMAP_JET)[...,::-1]
 
-overlay = cv2.addWeighted(scaled_aligned_thermal, 0.3, (frame_RGB_res*255).astype('uint8'), 0.7, 0)
+overlay = cv2.addWeighted(scaled_aligned_thermal, 0.3, (frame_RGB_res*256).astype('uint8'), 0.7, 0)
 plt.figure()
 plt.imshow(overlay)
 

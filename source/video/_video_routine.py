@@ -102,21 +102,23 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                     transform_matrix = new_transform_matrix
                     transform_obj = transform.PolynomialTransform(transform_matrix)
                 
-                # Warp the thermal image according to the transform object.
-                # TODO: Correct the division by 255 thing, it is weird.
-                warped_thermal_frame = float_to_uint8(transform.warp(corrected_thermal_frame/255, transform_obj))
                 # Scale the thermal frame to have the same size with the BGR.
                 # Pyramid expand method from skimage creates a smoother output,
                 # but the the difference in speed is more than 20x. So, we will
                 # use this method from cv2.
                 scale = NP_COMPAT_RES[0] / THERMAL_RES[0]
-                scaled_thermal_frame = cv2.resize(warped_thermal_frame, None,
+                scaled_thermal_frame = cv2.resize(corrected_thermal_frame, None,
                                                   fx = scale, fy = scale,
                                                   interpolation = cv2.INTER_LINEAR)
                 
+                # Warp the thermal image according to the transform object.
+                # TODO: Correct the division by 255 thing, it is weird.
+                warped_thermal_frame = float_to_uint8(transform.warp(scaled_thermal_frame/255, transform_obj))
+                
+                
                 # Apply color map to the scaled frame
                 # Beware that the output is also BGR.
-                colored_thermal_frame = cv2.applyColorMap(scaled_thermal_frame,
+                colored_thermal_frame = cv2.applyColorMap(warped_thermal_frame,
                                                           cv2.COLORMAP_JET)
         
             # Sum the thermal and BGR frames (even if it is not unique)
