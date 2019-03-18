@@ -34,7 +34,6 @@ def server_routine(frame_queue, audio_queue,
     want_image = b'w'
     send_image = b's'
 
-
     try:
         stream = io.BytesIO()
         while True:

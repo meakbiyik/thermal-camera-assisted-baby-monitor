@@ -1,13 +1,16 @@
 import random
 from queue import Empty
 from skimage import transform
-from control.transform_matrix import calculate_transform_matrix
 import sys
 import cv2
+import Adafruit_DHT
+from timed_threads import record_temp_humid_offset, calculate_transform_matrix
+from threading import Timer
 
 def control_routine(bgr_thermal_queue,
                     shared_transform_matrix,
-                    room_temp, room_humid, baby_temp):
+                    room_temp, room_humid, baby_temp, temp_offset,
+                    temp_dict):
     
     '''
     Routine that:
@@ -24,6 +27,22 @@ def control_routine(bgr_thermal_queue,
     '''
     try:
         
+        DHT_sensor = Adafruit_DHT.DHT22
+        DHT_pin = 4
+        
+        # Parse the initial thermal and bgr frames to work on.
+        bgr_frame, thermal_frame = bgr_thermal_queue.get()
+        
+        # Start the timers.
+        
+        temp_hum_timer = Timer(1.0, record_temp_humid_offset, [DHT_sensor, DHT_pin,
+                                                               room_temp, room_humid, temp_offset,
+                                                               temp_dict, thermal_frame])
+
+        alignment_timer = Timer(60.0, calculate_transform_matrix, [shared_transform_matrix,
+                                                                   bgr_frame, thermal_frame])
+        
+
         while True:
             
             # Get the frames
@@ -31,58 +50,16 @@ def control_routine(bgr_thermal_queue,
                 # If no frame is fed to the queue by the video process for 10 seconds,
                 # the method timeouts and gives an exception, which is caught below.
                 bgr_frame, thermal_frame = bgr_thermal_queue.get(timeout = 10)
-                  
-                ##########################################################
-                ############# Calculate the transform matrix #############
-                ##########################################################
-                
-                # Process the thermal frame
-                cv2.normalize(thermal_frame, 
-                              thermal_frame, 0, 255, cv2.NORM_MINMAX)
-                
-                # Increasing the scale factor makes the canny hysteresis thresholds'
-                # calculation unstable. 3 is determined to be an empirically sufficient
-                # number for matriix calculation.
-                scale_factor_of_thermal = 3
-                
-                # override max height and width. 
-                max_height = 60*scale_factor_of_thermal
-                
-                # Expand-reduce frames to have the same size. Do not apply Gaussian smoothing,
-                # since a total-variation denoising will be done later
-                if(bgr_frame.shape[0]/max_height > 1):
-                    frame_BGR_res = transform.pyramid_reduce(bgr_frame, sigma = 0,
-                                                             downscale = bgr_frame.shape[0]/max_height)
-                else:
-                    frame_BGR_res = bgr_frame 
-                frame_thermal_res = transform.pyramid_expand(thermal_frame/255, sigma = 0,
-                                                             upscale = scale_factor_of_thermal)[:,:,0]
-                
-                # Calculate the transform matrix. Depth 8 is accurate enough for the task.
-                # Increasing does not improve the results, and sometimes makes things
-                # worse since the frames are not homogenously informative enough.
-                transform_matrix = calculate_transform_matrix(frame_BGR_res, frame_thermal_res,
-                                                              division_depth = 8,
-                                                              desired_thermal_scale = 1/3)
-                
-                ##########################################################
-                ######## Put the acquired data into the variables ########
-                ##########################################################
-                
-                with room_temp.get_lock():
-                    room_temp.value = random.randint(20,30)
-                with room_humid.get_lock():
-                    room_humid.value = random.randint(800,1000)
-                with baby_temp.get_lock():
-                    baby_temp.value = random.randint(36,42)
-                    
-                with shared_transform_matrix.get_lock(): 
-                    shared_transform_matrix[:] = transform_matrix.flatten()
+
                 
             except Empty:
                 print('Timeout -- frames could not be parsed to the control routine')
                 sys.stdout.flush()
         
     finally:
+        # Cancel the timers
+        temp_hum_timer.cancel()
+        alignment_timer.cancel()
+        
         print('control routine stopped.')
         sys.stdout.flush()

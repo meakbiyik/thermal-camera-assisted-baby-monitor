@@ -11,7 +11,7 @@ import cv2
 from skimage import transform
 import time
 
-def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
+def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared_transform_matrix):
 
     '''
     Routine that:
@@ -32,7 +32,6 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
     NP_COMPAT_RES = (180,240)
     THERMAL_RES = (60,80)
     CHIP_DESELECT = 0.185 # Deselect duration after corruption, in miliseconds.
-    MIN_THRESH, MAX_THRESH = 7000, 8000 # 32 and 42 degrees, respectively
     
     # Initialize necessary variables
     transform_matrix = np.array([[ 2.81291628e-11, 1.00000000e+00, -5.06955742e-13,  8.35398829e-16, -1.56637280e-15,  2.92389590e-15],
@@ -43,6 +42,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
     # array to get continuous frames
     bgr_camera = PiCamera()
     bgr_camera.resolution = RESOLUTION
+    bgr_camera.mode = 4 # 4:3 aspect ratio, high frame rate, large FoV
     bgr_output_array = PiRGBArray(bgr_camera, size=RESOLUTION)
     
     # Initialize the thermal camera, create the handle. 
@@ -62,7 +62,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
         while not type(raw_thermal_frame) is np.ndarray:
             raw_thermal_frame, thermal_id = thermal_camera.capture(retry_reset = True,
                                                                    return_false_if_error = True)
-            print('hey')
+            print('Waiting for correct frame')
             sys.stdout.flush()
             
         start_time = time.perf_counter()
@@ -93,7 +93,14 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                 
                 # Preprocess the thermal frame to clip the values into some
                 # predetermined thresholds
-                corrected_thermal_frame = np.clip(raw_thermal_frame, MIN_THRESH, MAX_THRESH)
+                with temp_offset.get_lock():
+                    temperature_offset = temp_offset.value
+                    
+                # min_thresh = [x[0] for x in temp_dict.items() if x[1] == 32 + temperature_offset][0] # 32 and 42 degrees, respectively
+                # max_thresh = [x[0] for x in temp_dict.items() if x[1] == 42 + temperature_offset][0]
+                min_thresh = 7000
+                max_thresh = 8000
+                corrected_thermal_frame = np.clip(raw_thermal_frame, min_thresh, max_thresh)
         
                 # Normalize thermal frame to 0-255
                 cv2.normalize(corrected_thermal_frame, 

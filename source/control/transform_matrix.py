@@ -5,7 +5,7 @@ from sklearn.linear_model import LinearRegression
 from scipy import optimize
 from scipy import stats
 
-def calculate_transform_matrix(frame_RGB, frame_thermal,
+def _calculate_transform_matrix(frame_RGB, frame_thermal,
                                thermal_canny_percentage = 4,
                                rgb_canny_percentage = 4,
                                division_depth = 8,
