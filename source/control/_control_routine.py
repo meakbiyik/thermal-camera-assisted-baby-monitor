@@ -62,7 +62,8 @@ def control_routine(bgr_thermal_queue,
                 # Increasing does not improve the results, and sometimes makes things
                 # worse since the frames are not homogenously informative enough.
                 transform_matrix = calculate_transform_matrix(frame_BGR_res, frame_thermal_res,
-                                                              division_depth = 8)
+                                                              division_depth = 8,
+                                                              desired_thermal_scale = 1/3)
                 
                 ##########################################################
                 ######## Put the acquired data into the variables ########

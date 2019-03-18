@@ -14,6 +14,30 @@ from control._control_routine import control_routine
 
 if __name__ == '__main__':
     
+    # Open the server connection - ONLY FOR TEST PURPOSES
+    from pexpect import pxssh
+
+    s = pxssh.pxssh()
+
+    hostname = '188.166.17.65'
+    username = 'root'
+    password = 'eee493494'
+
+    s.login(hostname,username,password)
+    s.sendline('cd enki_web')
+    s.prompt()
+    print('Server login.')
+
+    s.sendline('source venv/bin/activate')
+    s.prompt()
+
+    s.sendline('cd VideoServer')
+    s.prompt()
+
+    s.sendline('python main3.py')
+    s.prompt(timeout = 10)
+    print('Server connected.')
+
     # Initialize queues. Frame and Audio queues are connected to server process,
     # but rgb and thermal frames are also fed into to control process via 
     # rgb_thermal_queue
@@ -23,10 +47,8 @@ if __name__ == '__main__':
     
     # Initialize transform matrix, a shared memory for video and control processes.
     # NOTE TO SELF: give a sensible transform matrix for the initial case
-    shared_transform_matrix = Array('d', [1.488387477669542e-10,0.999999999999626,-1.9870623558887407e-12,
-                                          3.850823241355083e-16,2.102969679454136e-15,6.344844602420193e-15,
-                                          -49.96998927342663,0.08376337829892767,1.0000000000002376,
-                                          -0.00028744912595213376,-1.5893570880750632e-15,3.3603285430256703e-15])
+    shared_transform_matrix = Array('d', [ 1.2e-10, 1, -1.678e-12,  4.914e-16, 2.2148e-15,  5.37e-15,
+                                           -43.0823, -0.09724,  1, 0.00044159, -2.12523e-15,  7.937e-15])
     
     # Initialize shared memories for value types.
     room_temp = Value('f', 0.0)

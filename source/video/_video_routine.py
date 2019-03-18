@@ -62,6 +62,9 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
         while not type(raw_thermal_frame) is np.ndarray:
             raw_thermal_frame, thermal_id = thermal_camera.capture(retry_reset = True,
                                                                    return_false_if_error = True)
+            print('hey')
+            sys.stdout.flush()
+            
         start_time = time.perf_counter()
         # Flag for the unique thermal frame and corrupted frame.
         # Corrupted frame flag carries a time value to leave
@@ -87,6 +90,7 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                 
                 # Put them into the queue
                 bgr_thermal_queue.put((bgr_frame, raw_thermal_frame))
+                
                 # Preprocess the thermal frame to clip the values into some
                 # predetermined thresholds
                 corrected_thermal_frame = np.clip(raw_thermal_frame, MIN_THRESH, MAX_THRESH)
@@ -102,23 +106,22 @@ def video_routine(frame_queue, bgr_thermal_queue, shared_transform_matrix):
                     transform_matrix = new_transform_matrix
                     transform_obj = transform.PolynomialTransform(transform_matrix)
                 
+                # Warp the thermal image according to the transform object.
+                # TODO: Correct the division by 255 thing, it is weird.
+                warped_thermal_frame = transform.warp(corrected_thermal_frame.astype(float), transform_obj).astype(np.uint8)
+                                
                 # Scale the thermal frame to have the same size with the BGR.
                 # Pyramid expand method from skimage creates a smoother output,
                 # but the the difference in speed is more than 20x. So, we will
                 # use this method from cv2.
                 scale = NP_COMPAT_RES[0] / THERMAL_RES[0]
-                scaled_thermal_frame = cv2.resize(corrected_thermal_frame, None,
+                scaled_thermal_frame = cv2.resize(warped_thermal_frame, None,
                                                   fx = scale, fy = scale,
                                                   interpolation = cv2.INTER_LINEAR)
                 
-                # Warp the thermal image according to the transform object.
-                # TODO: Correct the division by 255 thing, it is weird.
-                warped_thermal_frame = float_to_uint8(transform.warp(scaled_thermal_frame/255, transform_obj))
-                
-                
                 # Apply color map to the scaled frame
                 # Beware that the output is also BGR.
-                colored_thermal_frame = cv2.applyColorMap(warped_thermal_frame,
+                colored_thermal_frame = cv2.applyColorMap(scaled_thermal_frame,
                                                           cv2.COLORMAP_JET)
         
             # Sum the thermal and BGR frames (even if it is not unique)

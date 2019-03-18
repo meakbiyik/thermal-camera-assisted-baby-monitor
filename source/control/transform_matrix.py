@@ -8,7 +8,8 @@ from scipy import stats
 def calculate_transform_matrix(frame_RGB, frame_thermal,
                                thermal_canny_percentage = 4,
                                rgb_canny_percentage = 4,
-                               division_depth = 8):
+                               division_depth = 8,
+                               desired_thermal_scale = 1):
     '''
     Calculate the second degree polynomial transformation matrix to map the
     thermal frame on the RGB frame.
@@ -142,7 +143,7 @@ def calculate_transform_matrix(frame_RGB, frame_thermal,
     dest = np.array([(x,y) for x,y in zip(x_points_grid.flatten(), y_points_truegrid.flatten())])
     
     trans = transform.PolynomialTransform()
-    trans.estimate(src,dest,2)
+    trans.estimate(src*desired_thermal_scale,dest*desired_thermal_scale,2)
     
 #    from matplotlib import pyplot as plt
 #    import cv2
