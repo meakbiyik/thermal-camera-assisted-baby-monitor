@@ -1,7 +1,7 @@
-import random
+import pyaudio
+import wave
+import os
 import numpy as np
-
-AUDIO_LENGTH = 512
 
 def audio_routine(audio_queue, baby_is_crying):
     
@@ -14,14 +14,28 @@ def audio_routine(audio_queue, baby_is_crying):
     just because it looks empty.
     '''
     
-    while True:
+    form_1 = pyaudio.paInt16
+    chans=1
+    samp_rate = 48000
+    chunk = 750
+    dev_index = 2
+    audio = pyaudio.PyAudio()
+    
+    try:
         
-        # Audio processing
-        created_audio = np.random.normal(size = (AUDIO_LENGTH,))
+        audio = pyaudio.PyAudio()
+        stream = audio.open(format = form_1, rate=samp_rate, channels=chans,
+                            input_device_index = dev_index, input=True, frames_per_buffer=chunk)
+    
+        while True:
+            
+            data = stream.read(chunk,exception_on_overflow = False)
+    
+            # Send the frame to queue
+            audio_queue.put(data)
+    
+    finally:
         
-        # Send the frame to queue
-        audio_queue.put(created_audio)
-        
-        # Crying detected
-        with baby_is_crying.get_lock():
-            baby_is_crying.value = random.choice([True, False])
+        stream.stop_stream()
+        stream.close()
+        audio.terminate()

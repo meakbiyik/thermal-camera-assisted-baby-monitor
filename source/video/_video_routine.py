@@ -42,7 +42,7 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
     # array to get continuous frames
     bgr_camera = PiCamera()
     bgr_camera.resolution = RESOLUTION
-    bgr_camera.mode = 4 # 4:3 aspect ratio, high frame rate, large FoV
+    bgr_camera.sensor_mode = 4 # 4:3 aspect ratio, high frame rate, large FoV
     bgr_output_array = PiRGBArray(bgr_camera, size=RESOLUTION)
     
     # Initialize the thermal camera, create the handle. 
@@ -93,8 +93,8 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
                 
                 # Preprocess the thermal frame to clip the values into some
                 # predetermined thresholds
-                with temp_offset.get_lock():
-                    temperature_offset = temp_offset.value
+##                with temp_offset.get_lock():
+##                    temperature_offset = temp_offset.value
                     
                 # min_thresh = [x[0] for x in temp_dict.items() if x[1] == 32 + temperature_offset][0] # 32 and 42 degrees, respectively
                 # max_thresh = [x[0] for x in temp_dict.items() if x[1] == 42 + temperature_offset][0]
@@ -136,7 +136,7 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
                 
             # Video processed!
             print('Unique frame' if thermal_frame_is_unique else 'Repeating frame')
-            print('FPS: {}'.format(1/(time.perf_counter()-start_time)))
+            print('FPS: {}'.format(1/(time.perf_counter()- start_time)))
             start_time = time.perf_counter()
             sys.stdout.flush()
             

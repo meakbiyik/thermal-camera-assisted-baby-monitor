@@ -1,10 +1,9 @@
 import random
 from queue import Empty
-from skimage import transform
 import sys
 import cv2
 import Adafruit_DHT
-from timed_threads import record_temp_humid_offset, calculate_transform_matrix
+from control.timed_threads import record_temp_humid_offset, calculate_transform_matrix
 from threading import Timer
 
 def control_routine(bgr_thermal_queue,
@@ -30,19 +29,18 @@ def control_routine(bgr_thermal_queue,
         DHT_sensor = Adafruit_DHT.DHT22
         DHT_pin = 4
         
-        # Parse the initial thermal and bgr frames to work on.
         bgr_frame, thermal_frame = bgr_thermal_queue.get()
         
-        # Start the timers.
+        # Initiate and start timers.
+        temp_hum_timer = Timer(1.0, record_temp_humid_offset, [DHT_sensor, DHT_pin, room_temp,
+                                                               room_humid, temp_offset, temp_dict, thermal_frame])
+        temp_hum_timer.start()
         
-        temp_hum_timer = Timer(1.0, record_temp_humid_offset, [DHT_sensor, DHT_pin,
-                                                               room_temp, room_humid, temp_offset,
-                                                               temp_dict, thermal_frame])
-
         alignment_timer = Timer(60.0, calculate_transform_matrix, [shared_transform_matrix,
                                                                    bgr_frame, thermal_frame])
+        alignment_timer.start()
+                
         
-
         while True:
             
             # Get the frames
@@ -50,7 +48,23 @@ def control_routine(bgr_thermal_queue,
                 # If no frame is fed to the queue by the video process for 10 seconds,
                 # the method timeouts and gives an exception, which is caught below.
                 bgr_frame, thermal_frame = bgr_thermal_queue.get(timeout = 10)
-
+             
+##                if temp_hum_timer.finished:
+##                    print('temp timer finished')
+##                    sys.stdout.flush()
+##                    temp_hum_timer.join()
+##                    temp_hum_timer = Timer(1.0, record_temp_humid_offset, [DHT_sensor, DHT_pin,
+##                                                                           room_temp, room_humid, temp_offset,
+##                                                                           temp_dict, thermal_frame])
+##                    temp_hum_timer.start()
+##                
+##                if alignment_timer.finished:
+##                    print('alignment timer finished')
+##                    sys.stdout.flush()
+##                    alignment_timer.join()
+##                    alignment_timer = Timer(60.0, calculate_transform_matrix, [shared_transform_matrix,
+##                                                                               bgr_frame, thermal_frame])
+##                    alignment_timer.start()
                 
             except Empty:
                 print('Timeout -- frames could not be parsed to the control routine')
@@ -63,3 +77,4 @@ def control_routine(bgr_thermal_queue,
         
         print('control routine stopped.')
         sys.stdout.flush()
+        
