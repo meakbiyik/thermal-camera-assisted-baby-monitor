@@ -33,14 +33,14 @@ if __name__ == '__main__':
     s.sendline('source venv/bin/activate')
     s.prompt()
     
-    s.sendline('kill $(lsof -t -i:8000)')
+    s.sendline('kill $(lsof -t -i:2000)')
     s.prompt()
     
     s.sendline('cd VideoServer')
     s.prompt()
 
-    s.sendline('python main3.py')
-    print(s.prompt(timeout = 10))
+    s.sendline('python main4.py')
+    s.prompt(timeout = 10)
     print('Server connected.')
     sys.stdout.flush()
     
@@ -53,8 +53,10 @@ if __name__ == '__main__':
     
     # Initialize transform matrix, a shared memory for video and control processes.
     # NOTE TO SELF: give a sensible transform matrix for the initial case
-    shared_transform_matrix = Array('d', [ 1.2e-10, 1.0, -1.678e-12,  4.914e-16, 2.2148e-15,  5.37e-15,
-                                           -43.0823, -0.09724,  1.0, 0.00044159, -2.12523e-15,  7.937e-15])
+    shared_transform_matrix = Array('d', [ 7.90280463e-12,   1.00000000e+00,  -2.33541980e-13,
+                                           1.37996591e-16,   2.82893011e-15,   9.65976135e-16,
+                                          -1.98066687e+01,   4.52446591e-01,   1.00000000e+00,
+                                          -5.41081309e-03,  -8.05245777e-16,   7.05650176e-15])
     
     # Initialize shared memories for value types.
     room_temp = Value('f', 23.5)
@@ -66,6 +68,15 @@ if __name__ == '__main__':
     # Load temperature map
     temp_table = loadmat('source/control/temperature_map.mat')['temp_table']
     temp_dict = {int(a[1]):a[0] for a in temp_table}
+    min, max = min(list(temp_dict.keys())), max(list(temp_dict.keys()))
+    for i in range(min, max):
+        if temp_dict.get(i) is None:
+            temp_dict[i] = temp_dict[i-1]
+            
+    # Widen the range of the mapping to lower values by linearity
+    diff = temp_dict[min+1] - temp_dict[min]
+    for i in range(min-1, int(min/2), -1):
+        temp_dict[i] = temp_dict[i+1] - diff
     
     
     # Initialize Process objects and target the necessary routines

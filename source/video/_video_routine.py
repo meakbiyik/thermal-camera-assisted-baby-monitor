@@ -93,8 +93,7 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
                 
                 # Preprocess the thermal frame to clip the values into some
                 # predetermined thresholds
-##                with temp_offset.get_lock():
-##                    temperature_offset = temp_offset.value
+                temperature_offset = temp_offset.value
                     
                 # min_thresh = [x[0] for x in temp_dict.items() if x[1] == 32 + temperature_offset][0] # 32 and 42 degrees, respectively
                 # max_thresh = [x[0] for x in temp_dict.items() if x[1] == 42 + temperature_offset][0]
@@ -133,6 +132,16 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
         
             # Sum the thermal and BGR frames (even if it is not unique)
             overlay = cv2.addWeighted(colored_thermal_frame, 0.25, bgr_frame, 0.75, 0)
+            
+            # Write temperature on overlay
+            try:
+                max_temp = temp_dict[int(np.max(raw_thermal_frame))] + temperature_offset
+            except:
+                pass
+            
+            cv2.putText(overlay, 'Max Temp: {}'.format(max_temp),
+                        (10,NP_COMPAT_RES[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, (255,255,255), 2)
                 
             # Video processed!
             print('Unique frame' if thermal_frame_is_unique else 'Repeating frame')

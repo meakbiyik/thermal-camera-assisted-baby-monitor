@@ -23,10 +23,10 @@ def server_routine(frame_queue, audio_queue,
        Maybe multithreading can be added?
     '''
 
-    # Connect a client socket to my_server:8000 (change my_server to the
+    # Connect a client socket to my_server:2000 (change my_server to the
     # hostname of your server)
     client_socket = socket.socket()
-    client_socket.connect(('188.166.17.65', 8000))
+    client_socket.connect(('188.166.17.65', 2000))
 
     # Make a file-like object out of the connection
     connection = client_socket.makefile('wb')
