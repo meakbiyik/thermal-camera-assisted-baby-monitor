@@ -1,9 +1,11 @@
 import random
 from queue import Empty
 from skimage import transform
-from control.transform_matrix import calculate_transform_matrix
+from transform_matrix import calculate_transform_matrix
 import sys
 import cv2
+import scipy.io as scio
+import numpy as np
 
 def control_routine(bgr_thermal_queue,
                     shared_transform_matrix,
@@ -24,6 +26,12 @@ def control_routine(bgr_thermal_queue,
     '''
     try:
         
+        ## Generate Temperature Dictionary from Black Body Calibrated Regression Data
+        temp_data = scio.loadmat('temp_lut.mat')
+        temp_vals = temp_data['temp_vals'][0,:]
+        vals = temp_data['vals'][0,:]
+        faceDetector = cv2.CascadeClassifier('C:\\Users\\toshiba\\Anaconda3\\Library\\etc\\haarcascades\\haarcascade_frontalface_default.xml')
+        
         while True:
             
             # Get the frames
@@ -31,11 +39,15 @@ def control_routine(bgr_thermal_queue,
                 # If no frame is fed to the queue by the video process for 10 seconds,
                 # the method timeouts and gives an exception, which is caught below.
                 bgr_frame, thermal_frame = bgr_thermal_queue.get(timeout = 10)
-                  
+                thermal_raw = thermal_frame
+                bgr_shp = bgr_frame.shape
+                thermal_shp = thermal_frame.shape
+                scale_factor = bgr_shp[0]/thermal_shp[0]
                 ##########################################################
                 ############# Calculate the transform matrix #############
                 ##########################################################
                 
+
                 # Process the thermal frame
                 cv2.normalize(thermal_frame, 
                               thermal_frame, 0, 255, cv2.NORM_MINMAX)
@@ -60,13 +72,38 @@ def control_routine(bgr_thermal_queue,
                 # worse since the frames are not homogenously informative enough.
                 transform_matrix = calculate_transform_matrix(frame_BGR_res, frame_thermal_res,
                                                               division_depth = 8)
+                # Try face detection
                 
+                faces = faceDetector.detectMultiScale(bgr_frame,1.3,8)
+                trans_obj = transform.PolynomialTransform(transform_matrix)
+                temperature = 36.5
+                
+                if isinstance(faces,tuple):# no face is detected
+                    low = 30
+                    high = 42
+                    v_low = vals[temp_vals == low]
+                    v_high = vals[temp_vals == high]
+                    thermal_roi = thermal_raw[(thermal_raw <= v_high) & (thermal_raw >= v_low)]
+                    maxval = np.max(thermal_roi)
+                    tempreature = np.mean(temp_vals[(vals > maxval-0.75) && (vals < maxval+0.75)])                    
+                                        
+                else: # face is detected
+                    for (x,y,w,h) in faces:
+                        thermal_rect = np.array([(x,y),(x+w,y),(x,y+h),(x+w,y+h)]/scale_factor,dtype='float')
+                        thermal_rect = trans_obj(thermal_rect).astype('int') # transform the bgr face region into thermal
+                        tx = thermal_rect[0,0]
+                        ty = thermal_rect[0,1]
+                        tx_1 = thermal_rect[3,0]
+                        ty_1 = thermal_rect[3,1]
+                        thermal_face = thermal_raw[tx:tx_1,ty:ty_1]
+                        maxval = np.max(thermal_face)
+                        temperature = np.mean(temp_vals[(vals > maxval-0.75) && (vals < maxval+0.75)])
                 ##########################################################
                 ######## Put the acquired data into the variables ########
                 ##########################################################
                 
                 with room_temp.get_lock():
-                    room_temp.value = random.randint(20,30)
+                    room_temp.value = temperature
                 with room_humid.get_lock():
                     room_humid.value = random.randint(800,1000)
                 with baby_temp.get_lock():
