@@ -15,7 +15,7 @@ def audio_routine(audio_queue, baby_is_crying):
     '''
     
     form_1 = pyaudio.paInt16
-    chans=1
+    chans = 1
     samp_rate = 48000
     chunk = 750
     dev_index = 2

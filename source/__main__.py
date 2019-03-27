@@ -19,31 +19,31 @@ from scipy.io import loadmat
 if __name__ == '__main__':
     
     # open server connection for test purposes
-    s = pxssh.pxssh()
-
-    hostname = '188.166.17.65'
-    username = 'root'
-    password = 'eee493494'
-
-    s.login(hostname,username,password)
-    s.sendline('cd enki_web')
-    s.prompt()
-    print('Server login.')
-
-    s.sendline('source venv/bin/activate')
-    s.prompt()
-    
-    s.sendline('kill $(lsof -t -i:2000)')
-    s.prompt()
-    
-    s.sendline('cd VideoServer')
-    s.prompt()
-
-    s.sendline('python main4.py')
-    s.prompt(timeout = 10)
-    print('Server connected.')
-    sys.stdout.flush()
-    
+##    s = pxssh.pxssh()
+##
+##    hostname = '188.166.17.65'
+##    username = 'root'
+##    password = 'eee493494'
+##
+##    s.login(hostname,username,password)
+##    s.sendline('cd enki_web')
+##    s.prompt()
+##    print('Server login.')
+##
+##    s.sendline('source venv/bin/activate')
+##    s.prompt()
+##    
+##    s.sendline('kill $(lsof -t -i:2000)')
+##    s.prompt()
+##    
+##    s.sendline('cd VideoServer')
+##    s.prompt()
+##
+##    s.sendline('python main4.py')
+##    s.prompt(timeout = 10)
+##    print('Server connected.')
+##    sys.stdout.flush()
+##    
     # Initialize queues. Frame and Audio queues are connected to server process,
     # but rgb and thermal frames are also fed into to control process via 
     # rgb_thermal_queue

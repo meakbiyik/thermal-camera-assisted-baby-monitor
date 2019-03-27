@@ -43,6 +43,7 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
     bgr_camera = PiCamera()
     bgr_camera.resolution = RESOLUTION
     bgr_camera.sensor_mode = 4 # 4:3 aspect ratio, high frame rate, large FoV
+    bgr_camera.framerate = 30
     bgr_output_array = PiRGBArray(bgr_camera, size=RESOLUTION)
     
     # Initialize the thermal camera, create the handle. 
@@ -139,9 +140,9 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
             except:
                 pass
             
-            cv2.putText(overlay, 'Max Temp: {}'.format(max_temp),
+            cv2.putText(overlay, 'Max Temp: {}'.format(round(max_temp,2)),
                         (10,NP_COMPAT_RES[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5, (255,255,255), 2)
+                        0.25, (255,255,255), 2)
                 
             # Video processed!
             print('Unique frame' if thermal_frame_is_unique else 'Repeating frame')

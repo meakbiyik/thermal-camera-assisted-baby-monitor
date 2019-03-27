@@ -25,22 +25,24 @@ def server_routine(frame_queue, audio_queue,
 
     # Connect a client socket to my_server:2000 (change my_server to the
     # hostname of your server)
-    client_socket = socket.socket()
-    client_socket.connect(('188.166.17.65', 2000))
+    client_socket_video = socket.socket()
+##    client_socket_audio = socket.socket()
+    client_socket_video.connect(('167.99.215.27', 2000))
+##    client_socket_audio.connect(('188.166.17.65', 3000))
 
     # Make a file-like object out of the connection
-    connection = client_socket.makefile('wb')
-    start_stream = False
-    want_image = b'w'
-    send_image = b's'
+    connection_video = client_socket_video.makefile('wb')
+##    connection_audio = client_socket_audio.makefile('wb')
+    start_stream_video = False
+    start_stream_audio = False
+    want_data = b'w'
+    send_data = b's'
 
     try:
-        stream = io.BytesIO()
+        stream_video = io.BytesIO()
+        stream_audio = io.BytesIO()
         while True:
-            #         #
-            # # Reading the audio
-            # audio = audio_queue.get()
-            #
+            #         
             # # Reading the values
             # with room_temp.get_lock():
             #     current_room_temperature = room_temp.value
@@ -51,33 +53,59 @@ def server_routine(frame_queue, audio_queue,
             # with baby_is_crying.get_lock():
             #     crying_detected = baby_is_crying.value
 
-            if not start_stream:
+            if not start_stream_video:
 
-                start = time()
-
+                
                 # Possible addition of non-blocking arguments and select will be considered
-                answer = client_socket.recv(128)
+                answer = client_socket_video.recv(128)
 
-                if answer == want_image:
-                    start_stream = True
-                    client_socket.send(send_image)
+                if answer == want_data:
+                    start_stream_video = True
+                    client_socket_video.send(send_data)
 
             else:
                 frame = frame_queue.get()
                 _, encoded_frame = cv2.imencode('.jpg', frame)
-                stream.write(encoded_frame.tobytes())
+                stream_video.write(encoded_frame.tobytes())
                 # Write the length of the capture to the stream and flush to
                 # ensure it actually gets sent
-                connection.write(struct.pack('<L', stream.tell()))
-                connection.flush()
+                connection_video.write(struct.pack('<L', stream_video.tell()))
+                connection_video.flush()
                 # Rewind the stream and send the image data over the wire
-                stream.seek(0)
-                connection.write(stream.read())
+                stream_video.seek(0)
+                connection_video.write(stream_video.read())
                 # Reset the stream for the next capture
-                stream.seek(0)
-                stream.truncate()
+                stream_video.seek(0)
+                stream_video.truncate()
+                
+##            
+##            if not start_stream_audio:
+##
+##                
+##                # Possible addition of non-blocking arguments and select will be considered
+##                answer = client_socket_audio.recv(128)
+##
+##                if answer == want_data:
+##                    start_stream_audio = True
+##                    client_socket_audio.send(send_data)
+##
+##            else:
+##                chunk = audio_queue.get()
+##                stream_audio.write(chunk)
+##                # Write the length of the capture to the stream and flush to
+##                # ensure it actually gets sent
+##                connection_audio.write(struct.pack('<L', stream_audio.tell()))
+##                connection_audio.flush()
+##                # Rewind the stream and send the image data over the wire
+##                stream_audio.seek(0)
+##                connection_audio.write(stream_audio.read())
+##                # Reset the stream for the next capture
+##                stream_audio.seek(0)
+##                stream_audio.truncate()
 
     finally:
-        connection.close()
-        client_socket.close()
+##        connection_audio.close()
+##        client_socket_audio.close()
+        connection_video.close()
+        client_socket_video.close()
 
