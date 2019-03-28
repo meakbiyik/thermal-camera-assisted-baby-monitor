@@ -50,20 +50,21 @@ if __name__ == '__main__':
     bgr_thermal_queue = Queue(2)
     frame_queue = Queue(5)
     audio_queue = Queue(10)
+    faces_queue = Queue(1)
     
     # Initialize transform matrix, a shared memory for video and control processes.
     # NOTE TO SELF: give a sensible transform matrix for the initial case
-    shared_transform_matrix = Array('d', [ 7.90280463e-12,   1.00000000e+00,  -2.33541980e-13,
-                                           1.37996591e-16,   2.82893011e-15,   9.65976135e-16,
-                                          -1.98066687e+01,   4.52446591e-01,   1.00000000e+00,
-                                          -5.41081309e-03,  -8.05245777e-16,   7.05650176e-15])
+    shared_transform_matrix = Array('d', [ 1.96454238e-12,   1.00000000e+00,  -5.84182286e-14,
+                                          -4.16102772e-16,   9.15426099e-16,   2.49661663e-16,
+                                          -1.18675608e+01,   3.66684729e-02,   1.00000000e+00,
+                                          -5.09855513e-04,  -6.11513488e-16,  -5.29387540e-16])
     
     # Initialize shared memories for value types.
     room_temp = Value('f', 23.5)
     room_humid = Value('f', 36.09)
     baby_temp = Value('f', 0.0)
     baby_is_crying = Value(c_bool, False)
-    temp_offset = Value('f', 0.0)
+    temp_offset = Value('f', 3.0)
     
     # Load temperature map
     temp_table = loadmat('source/control/temperature_map.mat')['temp_table']
@@ -85,7 +86,8 @@ if __name__ == '__main__':
     video_process = Process(name = 'video_process',
                             target=video_routine, args=(frame_queue, bgr_thermal_queue,
                                                         temp_offset, temp_dict,
-                                                        shared_transform_matrix))
+                                                        shared_transform_matrix, baby_is_crying,
+                                                        faces_queue))
     server_process = Process(name = 'server_process',
                              target=server_routine, args=(frame_queue, audio_queue,
                                                           room_temp, room_humid, baby_temp,
@@ -94,7 +96,7 @@ if __name__ == '__main__':
                               target=control_routine, args=(bgr_thermal_queue,
                                                             shared_transform_matrix,
                                                             room_temp, room_humid, baby_temp, temp_offset,
-                                                            temp_dict))
+                                                            temp_dict, faces_queue))
     
     # Start the processes.
     video_process.start()

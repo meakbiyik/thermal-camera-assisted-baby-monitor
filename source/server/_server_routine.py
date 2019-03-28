@@ -42,6 +42,7 @@ def server_routine(frame_queue, audio_queue,
         stream_video = io.BytesIO()
         stream_audio = io.BytesIO()
         while True:
+        
             #         
             # # Reading the values
             # with room_temp.get_lock():
@@ -78,7 +79,7 @@ def server_routine(frame_queue, audio_queue,
                 stream_video.seek(0)
                 stream_video.truncate()
                 
-##            
+        
 ##            if not start_stream_audio:
 ##
 ##                
@@ -102,6 +103,8 @@ def server_routine(frame_queue, audio_queue,
 ##                # Reset the stream for the next capture
 ##                stream_audio.seek(0)
 ##                stream_audio.truncate()
+##            
+            
 
     finally:
 ##        connection_audio.close()

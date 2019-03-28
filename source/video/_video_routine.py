@@ -11,7 +11,10 @@ import cv2
 from skimage import transform
 import time
 
-def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared_transform_matrix):
+from queue import Empty
+
+def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared_transform_matrix,
+                  baby_is_crying, faces_queue):
 
     '''
     Routine that:
@@ -46,10 +49,13 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
     bgr_camera.framerate = 30
     bgr_output_array = PiRGBArray(bgr_camera, size=RESOLUTION)
     
+    # detected faces initialization
+    detected_faces = None
+    max_temp = 15
+    
     # Initialize the thermal camera, create the handle. 
     # DO NOT FORGET TO CLOSE IT MANUALLY!
     thermal_camera = Lepton("/dev/spidev0.1")
-    thermal_camera.create_handle()
     
     # Wrap the function into a try/finally block to handle the exit
     try:
@@ -61,8 +67,9 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
         # Walrus operator would be so nice to use here...
         raw_thermal_frame = False
         while not type(raw_thermal_frame) is np.ndarray:
-            raw_thermal_frame, thermal_id = thermal_camera.capture(retry_reset = True,
-                                                                   return_false_if_error = True)
+            with thermal_camera as tcam:
+                raw_thermal_frame, thermal_id = tcam.capture(retry_reset = True,
+                                                                       return_false_if_error = True)
             print('Waiting for correct frame')
             sys.stdout.flush()
             
@@ -98,7 +105,7 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
                     
                 # min_thresh = [x[0] for x in temp_dict.items() if x[1] == 32 + temperature_offset][0] # 32 and 42 degrees, respectively
                 # max_thresh = [x[0] for x in temp_dict.items() if x[1] == 42 + temperature_offset][0]
-                min_thresh = 7000
+                min_thresh = 7500
                 max_thresh = 8000
                 corrected_thermal_frame = np.clip(raw_thermal_frame, min_thresh, max_thresh)
         
@@ -140,18 +147,33 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
             except:
                 pass
             
-            cv2.putText(overlay, 'Max Temp: {}'.format(round(max_temp,2)),
-                        (10,NP_COMPAT_RES[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.25, (255,255,255), 2)
-                
+            if(max_temp >= 30):
+            
+                cv2.putText(overlay, 'Temp-in-range: {}'.format(round(max_temp,2)),
+                            (10,NP_COMPAT_RES[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
+                            0.25, (255,255,255), 1)
+            
+            cv2.putText(overlay, (':(' if baby_is_crying.value else ':)'),
+                        (NP_COMPAT_RES[1] - 30, NP_COMPAT_RES[0] - 20), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, (255,255,255), 1)
+            
+            try:
+                detected_faces = faces_queue.get( block = False)
+            except Empty:
+                pass
+            
+            if( detected_faces is not None):
+                for (x,y,w,h) in detected_faces:
+                    cv2.rectangle(overlay, (x,y), (x+w,y+h), (255,255,255), 1)
+            
             # Video processed!
-            print('Unique frame' if thermal_frame_is_unique else 'Repeating frame')
-            print('FPS: {}'.format(1/(time.perf_counter()- start_time)))
+##            print('Unique frame' if thermal_frame_is_unique else 'Repeating frame')
+##            print('FPS: {}'.format(1/(time.perf_counter()- start_time)))
+##            sys.stdout.flush()
             start_time = time.perf_counter()
-            sys.stdout.flush()
             
             # Send the frame to queue
-            frame_queue.put(overlay)
+            frame_queue.put(overlay[45:,:]) # cut 36 from above
             
             # Now, get the next thermal frame. First, check if the last thermal 
             # frame was corrupted. If not, just capture as usual.
@@ -162,16 +184,18 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
                 # If not, just use the old frames as the new ones. The id's will 
                 # be checked to prevent reprocessing in the next if block.
                 if(time.perf_counter() - thermal_frame_is_corrupted[1] > CHIP_DESELECT):
-                    new_raw_thermal_frame, new_thermal_id = thermal_camera.capture(retry_reset = False,
-                                                                                   return_false_if_error = True)
+                    with thermal_camera as tcam:
+                        new_raw_thermal_frame, new_thermal_id = tcam.capture(retry_reset = False,
+                                                                                       return_false_if_error = True)
                     thermal_frame_is_corrupted = (False, time.perf_counter())
                 
                 else:
                     new_raw_thermal_frame, new_thermal_id = raw_thermal_frame, thermal_id
             
             else:
-                new_raw_thermal_frame, new_thermal_id = thermal_camera.capture(retry_reset = False,
-                                                                               return_false_if_error = True)
+                with thermal_camera as tcam:
+                    new_raw_thermal_frame, new_thermal_id = tcam.capture(retry_reset = False,
+                                                                                   return_false_if_error = True)
             
             # If the capture was successful or the necessary time for the
             # corruption flag to be removed has not passed, check the uniqueness and 
@@ -195,7 +219,6 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
     
     finally:
         
-        thermal_camera.close_handle()
         bgr_camera.close()
         print('video routine stopped.')
         sys.stdout.flush()
