@@ -7,8 +7,10 @@ import io
 import socket
 
 import struct
-from time import time
-from time import sleep
+import time
+
+import urllib.request
+import json      
 
 def server_routine(frame_queue, audio_queue,
                    room_temp, room_humid, baby_temp,
@@ -22,7 +24,7 @@ def server_routine(frame_queue, audio_queue,
        This routine needs continuous optimization. Do not overburden it.
        Maybe multithreading can be added?
     '''
-
+    
     # Connect a client socket to my_server:2000 (change my_server to the
     # hostname of your server)
     client_socket_video = socket.socket()
@@ -38,25 +40,16 @@ def server_routine(frame_queue, audio_queue,
     want_data = b'w'
     send_data = b's'
 
+    current_time = time.perf_counter()
+
     try:
         stream_video = io.BytesIO()
         stream_audio = io.BytesIO()
-        while True:
-        
-            #         
-            # # Reading the values
-            # with room_temp.get_lock():
-            #     current_room_temperature = room_temp.value
-            # with room_humid.get_lock():
-            #     current_room_humidity = room_humid.value
-            # with baby_temp.get_lock():
-            #     current_baby_temperature = baby_temp.value
-            # with baby_is_crying.get_lock():
-            #     crying_detected = baby_is_crying.value
+        while True:        
+
 
             if not start_stream_video:
 
-                
                 # Possible addition of non-blocking arguments and select will be considered
                 answer = client_socket_video.recv(128)
 
@@ -79,6 +72,40 @@ def server_routine(frame_queue, audio_queue,
                 stream_video.seek(0)
                 stream_video.truncate()
                 
+            # Reading the values
+            current_room_temperature = room_temp.value
+            current_room_humidity = room_humid.value
+            current_baby_temperature = baby_temp.value
+            # with baby_is_crying.get_lock():
+            #     crying_detected = baby_is_crying.value    
+            
+            print('giris')
+            sys.stdout.flush()
+            
+            if(time.perf_counter() - current_time > 1):
+                
+                print('if')
+                sys.stdout.flush()
+                
+                current_time = time.perf_counter()
+            
+                body = {'device_id': 26082007,
+                        'room_temp': current_room_temperature,
+                        'room_humd': current_room_humidity,
+    #                    'baby_temp': current_baby_temperature}
+                        'baby_temp': random.uniform(36,40)}
+
+                myurl = "http://167.99.215.27:8000/api/data"
+                req = urllib.request.Request(myurl)
+                req.add_header('Content-Type', 'application/json')
+                jsondata = json.dumps(body)
+                jsondataasbytes = jsondata.encode('utf-8')
+                req.add_header('Content-Length', len(jsondataasbytes))
+                response = urllib.request.urlopen(req, jsondataasbytes)
+                
+                print('ifend')
+                sys.stdout.flush()
+                    
         
 ##            if not start_stream_audio:
 ##

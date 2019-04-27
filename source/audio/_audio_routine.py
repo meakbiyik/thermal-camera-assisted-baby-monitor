@@ -41,7 +41,7 @@ def audio_routine(audio_queue, baby_is_crying):
     
         while True:
             
-            data = stream.read(chunk,exception_on_overflow = False)
+            data = stream.read(chunk ,exception_on_overflow = False)
             
             # Send the frame to queue
             audio_queue.put(data)

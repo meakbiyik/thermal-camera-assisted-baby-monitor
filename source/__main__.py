@@ -4,6 +4,7 @@ from helper_modules.continuous_queue import ContinuousQueue as Queue
 from ctypes import c_bool
 from pexpect import pxssh
 import sys
+import numpy as np
 
 from audio._audio_routine import audio_routine
 from video._video_routine import video_routine
@@ -18,32 +19,6 @@ from scipy.io import loadmat
 
 if __name__ == '__main__':
     
-    # open server connection for test purposes
-##    s = pxssh.pxssh()
-##
-##    hostname = '188.166.17.65'
-##    username = 'root'
-##    password = 'eee493494'
-##
-##    s.login(hostname,username,password)
-##    s.sendline('cd enki_web')
-##    s.prompt()
-##    print('Server login.')
-##
-##    s.sendline('source venv/bin/activate')
-##    s.prompt()
-##    
-##    s.sendline('kill $(lsof -t -i:2000)')
-##    s.prompt()
-##    
-##    s.sendline('cd VideoServer')
-##    s.prompt()
-##
-##    s.sendline('python main4.py')
-##    s.prompt(timeout = 10)
-##    print('Server connected.')
-##    sys.stdout.flush()
-##    
     # Initialize queues. Frame and Audio queues are connected to server process,
     # but rgb and thermal frames are also fed into to control process via 
     # rgb_thermal_queue
@@ -54,10 +29,10 @@ if __name__ == '__main__':
     
     # Initialize transform matrix, a shared memory for video and control processes.
     # NOTE TO SELF: give a sensible transform matrix for the initial case
-    shared_transform_matrix = Array('d', [ 1.96454238e-12,   1.00000000e+00,  -5.84182286e-14,
-                                          -4.16102772e-16,   9.15426099e-16,   2.49661663e-16,
-                                          -1.18675608e+01,   3.66684729e-02,   1.00000000e+00,
-                                          -5.09855513e-04,  -6.11513488e-16,  -5.29387540e-16])
+    shared_transform_matrix = Array('d', [ 9.37830895e-12,   1.00000000e+00,  -3.96434172e-13,
+                                           8.62639189e-16,   2.35265233e-16,   5.09741339e-15,
+                                          -1.11682496e+01,  -9.00591808e-03,   1.00000000e+00,
+                                           6.29504763e-04,   7.57604597e-17,  -1.65846804e-15])
     
     # Initialize shared memories for value types.
     room_temp = Value('f', 23.5)
@@ -67,18 +42,9 @@ if __name__ == '__main__':
     temp_offset = Value('f', 3.0)
     
     # Load temperature map
-    temp_table = loadmat('source/control/temperature_map.mat')['temp_table']
-    temp_dict = {int(a[1]):a[0] for a in temp_table}
-    min, max = min(list(temp_dict.keys())), max(list(temp_dict.keys()))
-    for i in range(min, max):
-        if temp_dict.get(i) is None:
-            temp_dict[i] = temp_dict[i-1]
-            
-    # Widen the range of the mapping to lower values by linearity
-    diff = temp_dict[min+1] - temp_dict[min]
-    for i in range(min-1, int(min/2), -1):
-        temp_dict[i] = temp_dict[i+1] - diff
-    
+    temp_table = loadmat('source/control/temp_map_piecewise_linear.mat')['temp_v2']
+    temp_table = np.hstack((temp_table[4001:],temp_table[:4001]))
+    temp_dict = {int(a):b for a,b in temp_table}
     
     # Initialize Process objects and target the necessary routines
     audio_process = Process(name = 'audio_process',

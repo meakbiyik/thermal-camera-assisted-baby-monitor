@@ -37,11 +37,11 @@ def control_routine(bgr_thermal_queue,
         detect_face_timer = Timer(1.0, detect_face_location, [bgr_frame, face_detector, faces_queue])
         detect_face_timer.start()
         
-        temp_hum_timer = Timer(15.0, record_temp_humid_offset, [DHT_sensor, DHT_pin, room_temp,
+        temp_hum_timer = Timer(1.0, record_temp_humid_offset, [DHT_sensor, DHT_pin, room_temp,
                                                                 room_humid, temp_offset, temp_dict, thermal_frame])
         temp_hum_timer.start()
         
-        alignment_timer = Timer(60.0, calculate_transform_matrix, [shared_transform_matrix,
+        alignment_timer = Timer(1.0, calculate_transform_matrix, [shared_transform_matrix,
                                                                    bgr_frame, thermal_frame])
         alignment_timer.start()
                 
@@ -64,7 +64,7 @@ def control_routine(bgr_thermal_queue,
                     print('temp thread finished')
                     sys.stdout.flush()
                     temp_hum_timer.cancel()
-                    temp_hum_timer = Timer(15.0, record_temp_humid_offset, [DHT_sensor, DHT_pin, room_temp,
+                    temp_hum_timer = Timer(1.0, record_temp_humid_offset, [DHT_sensor, DHT_pin, room_temp,
                                                                room_humid, temp_offset, temp_dict, thermal_frame])
                     temp_hum_timer.start()
                 
@@ -72,7 +72,7 @@ def control_routine(bgr_thermal_queue,
                     print('alignment thread finished')
                     sys.stdout.flush()
                     alignment_timer.cancel()
-                    alignment_timer = Timer(60.0, calculate_transform_matrix, [shared_transform_matrix,
+                    alignment_timer = Timer(900.0, calculate_transform_matrix, [shared_transform_matrix,
                                                                                bgr_frame, thermal_frame])
                     alignment_timer.start()
                 

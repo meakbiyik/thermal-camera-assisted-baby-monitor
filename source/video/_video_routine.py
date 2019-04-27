@@ -105,7 +105,7 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
                     
                 # min_thresh = [x[0] for x in temp_dict.items() if x[1] == 32 + temperature_offset][0] # 32 and 42 degrees, respectively
                 # max_thresh = [x[0] for x in temp_dict.items() if x[1] == 42 + temperature_offset][0]
-                min_thresh = 7500
+                min_thresh = 7600
                 max_thresh = 8000
                 corrected_thermal_frame = np.clip(raw_thermal_frame, min_thresh, max_thresh)
         
@@ -143,10 +143,13 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
             
             # Write temperature on overlay
             try:
-                max_temp = temp_dict[int(np.max(raw_thermal_frame))] + temperature_offset
+                #max_temp = temp_dict[int(np.max(raw_thermal_frame))] + temperature_offset
+                max_temp = (np.max(raw_thermal_frame)-8192) * 0.0468 + temperature_offset
+                print('max value: {}'.format(np.max(raw_thermal_frame)))
             except:
+                print('value {} out of range'.format(np.max(raw_thermal_frame)))
                 pass
-            
+
             if(max_temp >= 30):
             
                 cv2.putText(overlay, 'Temp-in-range: {}'.format(round(max_temp,2)),
@@ -170,10 +173,11 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
 ##            print('Unique frame' if thermal_frame_is_unique else 'Repeating frame')
 ##            print('FPS: {}'.format(1/(time.perf_counter()- start_time)))
 ##            sys.stdout.flush()
+            print('MAX TEMP: {}'.format(max_temp))
             start_time = time.perf_counter()
             
             # Send the frame to queue
-            frame_queue.put(overlay[45:,:]) # cut 36 from above
+            frame_queue.put(overlay[45:,:]) # cut 45 from above
             
             # Now, get the next thermal frame. First, check if the last thermal 
             # frame was corrupted. If not, just capture as usual.

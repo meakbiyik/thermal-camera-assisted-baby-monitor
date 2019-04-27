@@ -7,6 +7,7 @@ import cv2
 import Adafruit_DHT
 import numpy as np
 from scipy import stats
+from subprocess import Popen, PIPE
 
 
 def record_temp_humid_offset(DHT_sensor, DHT_pin,
@@ -43,19 +44,26 @@ def record_temp_humid_offset(DHT_sensor, DHT_pin,
 
     #room_humidity, room_temperature = Adafruit_DHT.read(DHT_sensor, DHT_pin)
     
-    room_humidity = 36
-    room_temperature = 20
+    room_humidity = random.uniform(30,40)
+    room_temperature = random.uniform(20,30)
     
+    p = Popen(['sudo ./source/control/raspberrypi_video/raspberrypi_video'], shell = True, stdout = PIPE, stdin = PIPE)
+    chip_temp_raw = int(p.stdout.readline().strip())
+    chip_temp = (chip_temp_raw/100)-273
+    print('***************************************')
+    print('Chip Temperature= {}'.format(chip_temp))
     
     if room_humidity is not None:
     
         room_temp.value = float(room_temperature)
         room_humid.value = float(room_humidity)
         
-        temperature_offset = 3
+        #temperature_offset = chip_temp - temp_dict[8192]
+        temperature_offset = chip_temp
         temp_offset.value = float(round(temperature_offset, 1))
 
-        print('Offset: {}'.format(temperature_offset))
+        print('Temperature Offset: {}'.format(temperature_offset))
+        print('***************************************')
         sys.stdout.flush()
 
 
@@ -126,7 +134,7 @@ def detect_face_location(bgr_frame, face_detector, faces_queue):
     faces = face_detector.detectMultiScale(bgr_frame,1.2,3)
 
     if not isinstance(faces,tuple):  # if faces are returned
-        
+         
         faces_queue.put(faces)
         
     else:
