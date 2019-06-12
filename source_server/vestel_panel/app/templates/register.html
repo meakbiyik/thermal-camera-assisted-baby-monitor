@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="text-center">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" class="img-fluid " alt="Responsive image" style="max-width: 40%">
+        <h1 class="h4 text-gray-900 mb-4">Baby Monitor Panel</h1>
+        <hr>
+        <h1 class="h4 text-gray-900 mb-4">Create an Account</h1>
+</div>
+  <form class="user" method="POST" role="form">
+    {{ form.hidden_tag() }}
+    <div class="form-group row">
+      <div class="col-sm-6 mb-3 mb-sm-0">
+        <input type="text" class="form-control form-control-user" id="name" name="name"  placeholder="Name">
+      </div>
+      <div class="col-sm-6">
+        <input type="text" class="form-control form-control-user" id="surname" name="surname"  placeholder="Surname">
+      </div>
+    </div>
+    <div class="form-group row">
+      <div class="col-sm-6 mb-3 mb-sm-0">
+        <input type="text" class="form-control form-control-user" id="email" name="email"  placeholder="E-mail">
+      </div>
+      <div class="col-sm-6">
+        <input type="text" class="form-control form-control-user" id="deviceid" name="deviceid"  placeholder="Device ID">
+      </div>
+    </div>
+    <div class="form-group row">
+      <div class="col-sm-6 mb-3 mb-sm-0">
+          <input type="password" class="form-control form-control-user" id="password" name="password"  placeholder="Password">
+      </div>
+      <div class="col-sm-6">
+          <input type="password" class="form-control form-control-user" id="confirm" name="confirm"  placeholder="Confirm Password">
+      </div>
+    </div>
+    <button type="submit" name="submit" class="btn btn-primary btn-user btn-block">
+      Register Account
+    </button>
+    <hr>
+  </form>
+
+
+ {% for message in form.name.errors %}
+  <div class="alert alert-danger">
+
+     <p style="color:red">Error in field (Name): {{ message }}</p>
+
+  </div>
+ {% endfor %}
+
+ {% for message in form.surname.errors %}
+
+  <div class="alert alert-danger">
+
+
+     <p style="color:red">Error in field (Surname): {{ message }}</p>
+
+  </div>
+ {% endfor %}
+
+
+ {% for message in form.deviceid.errors %}
+
+  <div class="alert alert-danger">
+
+     <p style="color:red">Error in field (Device ID): {{ message }}</p>
+
+  </div>
+
+ {% endfor %}
+
+ {% for message in form.email.errors %}
+
+  <div class="alert alert-danger">
+
+     <p style="color:red">Error in field (E-mail): {{ message }}</p>
+  </div>
+ {% endfor %}
+
+ {% for message in form.password.errors %}
+  <div class="alert alert-danger">
+
+     <p style="color:red">Error in field (Password): {{ message }}</p>
+
+  </div>
+
+ {% endfor %}
+
+
+ {% for message in form.confirm.errors %}
+
+  <div class="alert alert-danger">
+     <p style="color:red">Error in field (Confirm Password): {{ message }}</p>
+  </div>
+
+ {% endfor %}
+
+
+  <hr>
+  <div class="text-center">
+    <a class="small" href="/forgot-password">Forgot Password?</a>
+  </div>
+  <div class="text-center">
+    <a class="small" href="/">Already have an account? Login.</a>
+  </div>
+{% endblock %}

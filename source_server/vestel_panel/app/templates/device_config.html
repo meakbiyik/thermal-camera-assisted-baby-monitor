@@ -1,0 +1,96 @@
+{% extends "base-admin.html" %}
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Device Configuration</h1>
+</div>
+
+
+  <div class="row">
+
+      <!-- Area Chart -->
+    <div class="col-xl-6 col-lg-6">
+      <div class="card shadow mb-4">
+        <!-- Card Header - Dropdown -->
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">Data Logging</h6>
+          <div class="dropdown no-arrow">
+            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Card Body -->
+        <div class="card-body">
+          <form>
+
+              <div class="form-row form-group">
+                  <label for="datalogSelect">Data Logging</label>
+                    <select class="form-control form-control" id="datalogSelect">
+                        <option>Enabled</option>
+                        <option>Disabled</option>
+                    </select>
+              </div>
+
+              <div class="form-row form-group">
+                  <label for="notifSelect">Data Update Period</label>
+                    <select class="form-control form-control" id="notifSelect">
+                        <option>10 mins</option>
+                        <option>30 mins</option>
+                        <option>1 hour</option>
+                    </select>
+              </div>
+
+
+              <button type="submit" class="btn btn-primary">Save</button>
+          </form>
+        </div>
+      </div>
+
+
+  </div>
+
+   <div class="col-xl-6 col-lg-6">
+      <div class="card shadow mb-4">
+        <!-- Card Header - Dropdown -->
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">Video</h6>
+          <div class="dropdown no-arrow">
+            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Card Body -->
+        <div class="card-body">
+          <form>
+
+              <div class="form-row form-group">
+                  <label for="datalogSelect">Thermal Overlay</label>
+                    <select class="form-control form-control" id="datalogSelect">
+                        <option>Enabled</option>
+                        <option>Disabled</option>
+                    </select>
+              </div>
+
+              <div class="form-row form-group">
+                  <label for="notifSelect">IR Leds</label>
+                    <select class="form-control form-control" id="notifSelect">
+                        <option>On</option>
+                        <option>Off</option>
+                        <option>Auto</option>
+                    </select>
+              </div>
+
+
+
+
+              <button type="submit" class="btn btn-primary">Save</button>
+          </form>
+        </div>
+
+  </div>
+  </div>
+</div>
+{% endblock %}

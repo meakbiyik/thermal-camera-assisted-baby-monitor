@@ -1,0 +1,75 @@
+{% extends "base-admin.html" %}
+{% block content %}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Alarms</h1>
+    <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i class="fas fa-download fa-sm text-white-50"></i> Generate Report</a>
+</div>
+
+          <div class="card shadow mb-4">
+            <div class="card-header py-3">
+              <h6 class="m-0 font-weight-bold text-primary">Data Log</h6>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Timestamp</th>
+                      <th>Status</th>
+                      <th>Operations</th>
+                    </tr>
+                  </thead>
+                  <tfoot>
+                    <tr>
+                      <th>#</th>
+                      <th>Timestamp</th>
+                      <th>Status</th>
+                      <th>Operations</th>
+                    </tr>
+                  </tfoot>
+                  <tbody>
+
+                  {%for d in data_collection%}
+                    <tr>
+                      <td>{{d.id}}</td>
+                      <td>{{d.timestamp}}</td>
+                      <td>
+                      {% if d.code == 1 %}
+
+                            Sound Anomaly
+
+                      {% elif d.code == 6 %}
+
+                            Fever Risk
+
+                       {% elif d.code == 0 %}
+
+                            OK
+
+                      {% endif %}
+
+                      </td>
+                      <td>
+                      {% if d.is_opened%}
+
+                        <a href="#">Mark as Read</a>
+
+                      {% else %}
+
+                        <a href="#">Mark as Unread</a>
+
+                      {% endif %}</td>
+                    </tr>
+
+                  {%endfor%}
+
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+
+{% endblock %}

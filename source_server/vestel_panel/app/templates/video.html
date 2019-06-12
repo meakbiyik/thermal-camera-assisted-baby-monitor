@@ -1,0 +1,57 @@
+{% extends "base-admin.html" %}
+{% block content %}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Video Stream</h1>
+</div>
+
+<div class="row align-items-center justify-content-center">
+
+  <!-- Area Chart -->
+<div class="col-xl-6 col-lg-6">
+
+    <div class="card shadow mb-4">
+
+     <!-- Card Header - Dropdown -->
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+      <h6 class="m-0 font-weight-bold text-primary">Video</h6>
+    </div>
+
+
+    <!-- Card Body -->
+    <div class="card-body" style="height: 450px;">
+
+         <iframe src="https://vestelagu.site:5000" frameborder="0" width="100%" height="100%" scrolling="no"></iframe>
+         <iframe src="https://vestelagu.site:4000/wav" frameborder="0" width="100%" height="100%" scrolling="no" style="display:none"></iframe>
+        <!-- <div class="d-flex justify-content-center">
+
+            <img src="{{ url_for('static', filename='img/loading2.gif') }}" height=100px>
+
+
+        </div>
+        <div class="d-flex justify-content-center">
+
+
+          <h5>Establishing a connection, please wait...</h5>
+
+        </div>
+
+
+
+
+    </div>   End of card body -->
+
+
+
+
+    </div>
+</div>
+
+
+</div>
+
+</div>
+
+
+
+{% endblock %}
