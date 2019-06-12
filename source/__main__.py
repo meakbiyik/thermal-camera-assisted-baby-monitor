@@ -39,6 +39,7 @@ if __name__ == '__main__':
     room_humid = Value('f', 36.09)
     baby_temp = Value('f', 0.0)
     baby_is_crying = Value(c_bool, False)
+    baby_feverish = Value(c_bool, False)
     temp_offset = Value('f', 3.0)
     
     # Load temperature map
@@ -53,16 +54,16 @@ if __name__ == '__main__':
                             target=video_routine, args=(frame_queue, bgr_thermal_queue,
                                                         temp_offset, temp_dict,
                                                         shared_transform_matrix, baby_is_crying,
-                                                        faces_queue))
+                                                        faces_queue, baby_temp))
     server_process = Process(name = 'server_process',
                              target=server_routine, args=(frame_queue, audio_queue,
                                                           room_temp, room_humid, baby_temp,
-                                                          baby_is_crying))
+                                                          baby_is_crying,baby_feverish))
     control_process = Process(name = 'control_process',
                               target=control_routine, args=(bgr_thermal_queue,
                                                             shared_transform_matrix,
                                                             room_temp, room_humid, baby_temp, temp_offset,
-                                                            temp_dict, faces_queue))
+                                                            temp_dict, faces_queue, baby_feverish))
     
     # Start the processes.
     video_process.start()

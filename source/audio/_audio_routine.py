@@ -7,6 +7,12 @@ import sys
 import math
 from collections import deque
 import time
+import socket
+import io
+import struct
+from threading import Timer
+import playsound
+
 
 def audio_routine(audio_queue, baby_is_crying):
     
@@ -19,55 +25,126 @@ def audio_routine(audio_queue, baby_is_crying):
     just because it looks empty.
     '''
     
-    form_1 = pyaudio.paInt16
-    chans = 2
-    samp_rate = 48000
-    chunk = 1500
+    CHUNK = 4096
+    FORMAT = pyaudio.paInt16
+    CHANNELS = 2
     dev_index = 2
+    RATE = 48000
     audio = pyaudio.PyAudio()
+    audio_lullaby = pyaudio.PyAudio()
+    lullaby = wave.open(r'/home/pi/Desktop/Project_Files/source_code/source/audio/Baby-sleep-music.wav', 'rb')
     
     rms_deque = deque([0]*8, 8)
-    print_counter = 0
     
     cry_timer = time.perf_counter()
     CRYING_LIMIT = 5
     baby_is_crying.value = False
     
+    want_image = b'w'
+    send_image = b's'
+
+    # Connect a client socket to my_server:8000 (change my_server to the
+    # hostname of your server)
+    client_socket = socket.socket()
+    #client_socket.connect(('188.166.17.65', 3000))
+    client_socket.connect(('167.99.215.27', 3000))
+
+    # Make a file-like object out of the connection
+    connection = client_socket.makefile('wb')
+
+    answer = client_socket.recv(128)
+    while answer != want_image:
+        answer = client_socket.recv(128)
+        print(answer)
+
+    client_socket.send(send_image)
+    
+    data_send_thread = None
+    data_send_start = 0
+    
     try:
         
-        audio = pyaudio.PyAudio()
-        stream = audio.open(format = form_1, rate = samp_rate, channels = chans,
-                            input_device_index = dev_index, input=True, frames_per_buffer=chunk)
-    
+        server_stream = io.BytesIO()
+        audio_stream = audio.open(format=FORMAT,
+                                  channels=CHANNELS,
+                                  rate=RATE,
+                                  input_device_index = dev_index,
+                                  input=True,
+                                  frames_per_buffer=CHUNK)
+        
+        audio_stream_lullaby = audio_lullaby.open(format =audio_lullaby.get_format_from_width(lullaby.getsampwidth()),
+                                      channels = lullaby.getnchannels(),
+                                      rate = 48000,
+                                      output = True)
+
         while True:
             
-            data = stream.read(chunk ,exception_on_overflow = False)
+            # Read data
+            data = audio_stream.read(CHUNK ,exception_on_overflow = False)
             
-            # Send the frame to queue
-            audio_queue.put(data)
+            ######################################################
+            ############ Send the data to the server #############
+            ######################################################
             
             rms = 20 * math.log10(audioop.rms(data, 2))
             rms_deque.append(rms)
             
             mean_rms = np.mean(np.array(rms_deque))
             
-            print_counter += 1
-            if( print_counter == 5):
-                print('Averaged RMS: {}'.format(mean_rms))
-                sys.stdout.flush()
-                print_counter = 0
+            print('Averaged RMS: {}'.format(mean_rms))
+            sys.stdout.flush()
             
             peak_count = np.count_nonzero( np.array(rms_deque) > 50)
             
             if( peak_count > 4):
                 baby_is_crying.value = True
+                print('BABY CRYING!')
+                sys.stdout.flush()
                 cry_timer = time.perf_counter()
             elif (time.perf_counter() - cry_timer > CRYING_LIMIT):
                 baby_is_crying.value = False
+            
 
+            try:
+                
+                ######################################################
+                ############ Send the data to the server #############
+                ######################################################
+                
+                if baby_is_crying.value:
+                    lull_data = lullaby.readframes(CHUNK)
+                    audio_stream_lullaby.write(lull_data)
+                    if(lull_data == ''):
+                        lullaby.rewind()
+                
+                server_stream.write(data)
+                # Write the length of the capture to the stream and flush to
+                # ensure it actually gets sent
+                connection.write(struct.pack('<L', server_stream.tell()))
+                connection.flush()
+                # Rewind the stream and send the image data over the wire
+                server_stream.seek(0)
+                connection.write(server_stream.read())
+                # Reset the stream for the next capture
+                server_stream.seek(0)
+                server_stream.truncate()
+                
+            except KeyboardInterrupt:
+                raise RuntimeError
+            
+            except:
+                print('Exception on Audio server')
+                sys.stdout.flush()
     
     finally:
         
-        stream.stop_stream()
-        stream.close()
+        lullaby.close()
+        audio_stream.stop_stream()
+        audio_stream.close()
+        audio_stream_lullaby.stop_stream()
+        audio_stream_lullaby.close()
         audio.terminate()
+        audio_lullaby.terminate()
+        connection.close()
+        client_socket.close()
+        

@@ -13,8 +13,8 @@ import time
 
 from queue import Empty
 
-def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared_transform_matrix,
-                  baby_is_crying, faces_queue):
+def video_routine(frame_queue, bgr_thermal_queue, aux_temp, temp_dict, shared_transform_matrix,
+                  baby_is_crying, faces_queue, baby_temp):
 
     '''
     Routine that:
@@ -34,7 +34,8 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
     RESOLUTION = (240,180) # Beware that this is the inverse of numpy ordering!
     NP_COMPAT_RES = (180,240)
     THERMAL_RES = (60,80)
-    CHIP_DESELECT = 0.185 # Deselect duration after corruption, in miliseconds.
+    #CHIP_DESELECT = 0.185 # Deselect duration after corruption, in miliseconds.
+    CHIP_DESELECT = 0.25
     
     # Initialize necessary variables
     transform_matrix = np.array([[ 2.81291628e-11, 1.00000000e+00, -5.06955742e-13,  8.35398829e-16, -1.56637280e-15,  2.92389590e-15],
@@ -51,11 +52,14 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
     
     # detected faces initialization
     detected_faces = None
-    max_temp = 15
+    max_temp = 45
     
     # Initialize the thermal camera, create the handle. 
     # DO NOT FORGET TO CLOSE IT MANUALLY!
     thermal_camera = Lepton("/dev/spidev0.1")
+    
+    print('yes')
+    sys.stdout.flush()
     
     # Wrap the function into a try/finally block to handle the exit
     try:
@@ -65,14 +69,16 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
         # Lepton sometimes return the same frame, so if the frame id is 
         # identical, no processing is necessary.
         # Walrus operator would be so nice to use here...
+            
         raw_thermal_frame = False
         while not type(raw_thermal_frame) is np.ndarray:
+            time.sleep(CHIP_DESELECT)
             with thermal_camera as tcam:
-                raw_thermal_frame, thermal_id = tcam.capture(retry_reset = True,
-                                                                       return_false_if_error = True)
-            print('Waiting for correct frame')
-            sys.stdout.flush()
-            
+                raw_thermal_frame, thermal_id = tcam.capture(retry_reset = False,
+                                                             return_false_if_error = True)
+                print('Waiting for correct frame')
+            sys.stdout.flush() 
+        
         start_time = time.perf_counter()
         # Flag for the unique thermal frame and corrupted frame.
         # Corrupted frame flag carries a time value to leave
@@ -88,7 +94,14 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
             # Acquire the BGR frame
             # There was a copy() here. WAS IT NECESSARY, REALLY? CHECK.
             bgr_frame = np.flip(frame.array,0).astype(np.uint8)
-            raw_thermal_frame = np.flip(raw_thermal_frame,0)
+            #raw_thermal_frame = np.flip(raw_thermal_frame,0)
+            rotated_thermal_frame = np.flip(cv2.rotate(raw_thermal_frame, cv2.ROTATE_90_CLOCKWISE),1)
+            raw_thermal_frame = np.zeros(THERMAL_RES)
+            raw_thermal_frame[:-7,8:-12] = rotated_thermal_frame[27:,:]
+            
+            #print(raw_thermal_frame)
+            #print(raw_thermal_frame.shape)
+            #print(raw_thermal_frame.dtype)
             
             # Do the processing if the thermal frame is unique. If not,
             # nothing much to do! 
@@ -101,13 +114,18 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
                 
                 # Preprocess the thermal frame to clip the values into some
                 # predetermined thresholds
-                temperature_offset = temp_offset.value
+                aux_temperature = aux_temp.value
                     
                 # min_thresh = [x[0] for x in temp_dict.items() if x[1] == 32 + temperature_offset][0] # 32 and 42 degrees, respectively
                 # max_thresh = [x[0] for x in temp_dict.items() if x[1] == 42 + temperature_offset][0]
-                min_thresh = 7600
-                max_thresh = 8000
-                corrected_thermal_frame = np.clip(raw_thermal_frame, min_thresh, max_thresh)
+                #min_thresh = 7600
+                #max_thresh = 8000
+                min_thresh = (20 + 322.895 - aux_temperature * 1.2803) / 0.0403 #23 degrees
+                max_thresh = (35 + 322.895 - aux_temperature * 1.2803) / 0.0403 #38 degrees
+                dummy_added_thermal_frame = raw_thermal_frame.copy()
+                dummy_added_thermal_frame[0,1] = min_thresh
+                dummy_added_thermal_frame[0,0] = max_thresh
+                corrected_thermal_frame = np.clip(dummy_added_thermal_frame, min_thresh, max_thresh)
         
                 # Normalize thermal frame to 0-255
                 cv2.normalize(corrected_thermal_frame, 
@@ -137,20 +155,17 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
                 # Beware that the output is also BGR.
                 colored_thermal_frame = cv2.applyColorMap(scaled_thermal_frame,
                                                           cv2.COLORMAP_JET)
-        
+            
             # Sum the thermal and BGR frames (even if it is not unique)
             overlay = cv2.addWeighted(colored_thermal_frame, 0.25, bgr_frame, 0.75, 0)
             
             # Write temperature on overlay
-            try:
-                #max_temp = temp_dict[int(np.max(raw_thermal_frame))] + temperature_offset
-                max_temp = (np.max(raw_thermal_frame)-8192) * 0.0468 + temperature_offset
-                print('max value: {}'.format(np.max(raw_thermal_frame)))
-            except:
-                print('value {} out of range'.format(np.max(raw_thermal_frame)))
-                pass
+            #max_temp = temp_dict[int(np.max(raw_thermal_frame))] + temperature_offset
+            max_temp = baby_temp.value
+            # print('max value: {}'.format(np.max(raw_thermal_frame)))
 
-            if(max_temp >= 30):
+
+            if(70 >= max_temp >= 15):
             
                 cv2.putText(overlay, 'Temp-in-range: {}'.format(round(max_temp,2)),
                             (10,NP_COMPAT_RES[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
@@ -167,7 +182,7 @@ def video_routine(frame_queue, bgr_thermal_queue, temp_offset, temp_dict, shared
             
             if( detected_faces is not None):
                 for (x,y,w,h) in detected_faces:
-                    cv2.rectangle(overlay, (x,y), (x+w,y+h), (255,255,255), 1)
+                    cv2.rectangle(overlay, (x,y), (x+w,y-h), (255,255,255), 1)
             
             # Video processed!
 ##            print('Unique frame' if thermal_frame_is_unique else 'Repeating frame')

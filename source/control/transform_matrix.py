@@ -20,13 +20,21 @@ def float_to_uint8(frame):
     return conv_frame
 
 def _canny_with_TV(frame_RGB, weight, coverage = 3, return_error = False):
-
-    max_height, max_width,_ = frame_RGB.shape
     
-    # Smooth the images by an edge-preserving TV denoising method.
-    # Color image is smoothed more than thermal, since it has more unnecessary features
-    RGB_smooth = restoration.denoise_tv_chambolle(frame_RGB, weight=weight, multichannel=True)
-  
+    if len(frame_RGB.shape) == 3:
+        max_height, max_width,_ = frame_RGB.shape
+    
+        # Smooth the images by an edge-preserving TV denoising method.
+        # Color image is smoothed more than thermal, since it has more unnecessary features
+        RGB_smooth = restoration.denoise_tv_chambolle(frame_RGB, weight=weight, multichannel=True)
+    
+    else:
+        max_height, max_width = frame_RGB.shape
+    
+        # Smooth the images by an edge-preserving TV denoising method.
+        # Color image is smoothed more than thermal, since it has more unnecessary features
+        RGB_smooth = restoration.denoise_tv_chambolle(frame_RGB, weight=weight)
+      
     RGB_smooth = float_to_uint8(RGB_smooth)
 
     # Possible contours - get ideal values from minimization!
@@ -41,17 +49,20 @@ def _canny_with_TV(frame_RGB, weight, coverage = 3, return_error = False):
     # Apply canny edge detection 
     rgb_proc = cv2.Canny(RGB_smooth,*thresh)
     
+    rgb_proc_full = np.zeros((360, 480))
+    rgb_proc_full[90:270,120:360] = rgb_proc
+    
     if return_error:
-        return rgb_proc, rgb_canny_minimize(thresh)
+        return rgb_proc_full, rgb_canny_minimize(thresh)
     else:
-        return rgb_proc
+        return rgb_proc_full
 
 def _calculate_transform_matrix(frame_RGB, frame_thermal,
                                thermal_canny_percentage = 4,
                                rgb_canny_percentage = 4,
-                               division_depth = 8,
+                               division_depth = 6,
                                desired_thermal_scale = 1,
-                               denoise_weight_rgb = 0.3, denoise_weight_thermal = 0.2,
+                               denoise_weight_rgb = 0.3, denoise_weight_thermal = 0.1,
                                degree = 2,
                                plot = False):
     '''
@@ -79,12 +90,12 @@ def _calculate_transform_matrix(frame_RGB, frame_thermal,
     ndarray
         2x6 second degree polynomial transformation matrix.
     '''
-    
-    orig_width, orig_height = frame_RGB.shape[:2]
-    half_width, half_height = int(orig_width/2), int(orig_height/2)
-    
+
     rgb_edge = _canny_with_TV(frame_RGB, denoise_weight_rgb, rgb_canny_percentage)
     therm_edge = _canny_with_TV(frame_thermal, denoise_weight_thermal, thermal_canny_percentage)
+    
+    orig_width, orig_height = rgb_edge.shape
+    half_width, half_height = int(orig_width/2), int(orig_height/2)
     
     rgb_proc = np.zeros((orig_width*2, orig_height*2))
     rgb_proc[half_width:half_width*3,half_height:half_height*3] = rgb_edge
@@ -137,7 +148,7 @@ def _calculate_transform_matrix(frame_RGB, frame_thermal,
     # the location of the cameras, then remove outliers (i.e. points more than 1 iqr away 
     # from the closest percentile.)
     
-    #clean_mask_1 = np.array([True if y > max_height*11/20 else False for y in points_y])
+    clean_mask_1 = np.array([True if y > max_height*11/20 else False for y in points_y])
     clean_mask_1 = np.array([True if True else False for y in points_y])
     semiclean_points_x = np.array(points_x)[clean_mask_1]
     semiclean_points_y = np.array(points_y)[clean_mask_1]
